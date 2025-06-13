@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --square-size: 80px;
+  --piece-size: 50px;
+  --light: #f0d9b5;
+  --dark: #b58863;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --square-size: 60px;
+    --piece-size: 40px;
+  }
+}
+
+@media (max-width: 500px) {
+  :root {
+    --square-size: 40px;
+    --piece-size: 20px;
+  }
+}
+
+.board .squares {
+  display: grid;
+  grid-template-columns: repeat(8, var(--square-size));
+  grid-template-rows: repeat(8, var(--square-size));
+}
+
+.tile:has([data-rank="1"])::before {
+  content: attr(data-letter);
+  position: absolute;
+  translate: calc(var(--square-size) * -1 / 2 + var(--square-size) - 10px)
+    calc(var(--square-size) / 2 - 12px);
+  font-size: clamp(0.75rem, 0.571rem + 0.476vw, 1rem);
+}
+
+.tile:has([data-file="1"])::after {
+  content: attr(data-rank);
+  position: absolute;
+  translate: calc(var(--square-size) * -1 / 2 + 10px)
+    calc(var(--square-size) * -1 / 2 + 15px);
+  font-size: clamp(0.75rem, 0.571rem + 0.476vw, 1rem);
+}
+
+.board .tile:has([data-color="light"]) {
+  background-color: var(--light);
+
+  /* Change Coordinates color */
+  &::before,
+  &::after {
+    color: var(--dark);
+  }
+}
+
+.board .tile:has([data-color="dark"]) {
+  background-color: var(--dark);
+
+  /* Change Coordinates color */
+  &::before,
+  &::after {
+    color: var(--light);
+  }
+}
+
+.highlight {
+  background-color: rgba(144, 238, 144, 0.5) !important;
+}
+
+.selected {
+  background-color: rgba(173, 216, 230, 0.7) !important;
+}
