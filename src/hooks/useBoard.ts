@@ -15,9 +15,9 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
   }, [board.pieces, board.selectedPiece, board.turn]);
 
   const selectPiece = useCallback(
-    (piece: Piece) => {
+    (piece: Piece | null) => {
       // Prevent selecting opponent's pieces
-      if (piece.color !== board.turn) return;
+      if (piece && piece.color !== board.turn) return;
       setBoard((prev) => {
         return {
           ...prev,
