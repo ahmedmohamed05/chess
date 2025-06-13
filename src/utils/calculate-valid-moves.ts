@@ -223,23 +223,25 @@ export default function calculateValidMoves(
 
       moves = moves.filter((move) => validMove(move)); // Filter The Moves
 
+      // TODO: Check If There Is No Checks In The Way
       // If The King Moved
       if (piece.hasMoved) return moves;
 
       // Short Castling O-O
       // Looking For Pieces In The Way
-      if (checkPieceAt(pieces, { rank, file: 6 })) return moves; // Light-Squares Bishop
-      if (checkPieceAt(pieces, { rank, file: 7 })) return moves; // Knight
       const hRook = getPiece(pieces, { rank, file: 8 });
-      if (hRook && !hRook.hasMoved) moves.push({ rank, file: file + 2 });
+      const lightBishop = checkPieceAt(pieces, { rank, file: 6 });
+      const rightKnight = checkPieceAt(pieces, { rank, file: 7 });
+      if (!lightBishop && !rightKnight && hRook && !hRook.hasMoved)
+        moves.push({ rank, file: file + 2 });
 
       // Long Castling O-O-O
-      // Looking For Pieces In The Way
-      if (checkPieceAt(pieces, { rank, file: 4 })) return moves; // Queen
-      if (checkPieceAt(pieces, { rank, file: 3 })) return moves; // Dark-Squares Bishop
-      if (checkPieceAt(pieces, { rank, file: 2 })) return moves; // Knight
       const aRook = getPiece(pieces, { rank, file: 1 });
-      if (aRook && !aRook.hasMoved) moves.push({ rank, file: file - 2 });
+      const queen = checkPieceAt(pieces, { rank, file: 4 });
+      const darkBishop = checkPieceAt(pieces, { rank, file: 3 });
+      const leftKnight = checkPieceAt(pieces, { rank, file: 2 });
+      if (!queen && !darkBishop && !leftKnight && aRook && !aRook.hasMoved)
+        moves.push({ rank, file: file - 2 });
 
       return moves;
     }
