@@ -214,10 +214,22 @@ export default function calculateValidMoves(
       return moves;
     }
 
-    // case "king": {
-    // }
+    // It's just a rook + bishop
+    case "queen": {
+      const rookMovements = calculateValidMoves(
+        pieces,
+        { ...piece, type: "rook" },
+        turn
+      );
+      const bishopMovements = calculateValidMoves(
+        pieces,
+        { ...piece, type: "bishop" },
+        turn
+      );
+      return [...rookMovements, ...bishopMovements];
+    }
 
-    // case "queen": {
+    // case "king": {
     // }
   }
   return [];
