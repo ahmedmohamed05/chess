@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  type MouseEvent as ReactMouseEvent,
-} from "react";
+import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import { RANKS, FILES, INIT_BOARD_STATE } from "../constants";
 import Squares from "./Squares";
 import { useBoard } from "../hooks/useBoard";
@@ -23,6 +18,15 @@ export default function Board() {
   const activePieceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const ignoreNextClick = useRef(false);
+
+  const getTargetPosition = useCallback((x: number, y: number): Coordinates => {
+    const boardRect = boardRef.current!.getBoundingClientRect();
+    const relX = x - boardRect.left;
+    const relY = y - boardRect.top;
+    const file = Math.floor((relX / boardRect.width) * 8) + 1;
+    const rank = 8 - Math.floor((relY / boardRect.height) * 8); // 1-8
+    return { file, rank };
+  }, []);
 
   const movePieceHandler = useCallback((e: DomMouseEvent) => {
     if (!activePieceRef.current || !isDragging.current) return;
@@ -51,25 +55,18 @@ export default function Board() {
     (e: DomMouseEvent) => {
       if (!activePieceRef.current || !boardRef.current || !isDragging.current)
         return;
-
       const piece = activePieceRef.current;
-      const boardRect = boardRef.current.getBoundingClientRect();
-      const relX = e.clientX - boardRect.left;
-      const relY = e.clientY - boardRect.top;
-      const file = Math.floor((relX / boardRect.width) * 8) + 1;
-      const rank = 8 - Math.floor((relY / boardRect.height) * 8); // 1-8
-
-      movePiece({ rank, file });
-
+      movePiece(getTargetPosition(e.clientX, e.clientY));
+      // Reset
       piece.style.position = "static";
       activePieceRef.current = null;
       isDragging.current = false;
       ignoreNextClick.current = true; // No Piece Selected
     },
-    [movePiece]
+    [movePiece, getTargetPosition]
   );
 
-  const grabPieceHandler = (e: ReactMouseEvent<HTMLDivElement>) => {
+  const grabPieceHandler = (e: MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
 
     // Tile doesn't have a piece
@@ -94,19 +91,17 @@ export default function Board() {
     target.style.top = y - target.offsetHeight / 2 + "px";
   };
 
-  const handleBoardClick = (e: ReactMouseEvent<HTMLDivElement>) => {
+  const handleBoardClick = (e: MouseEvent<HTMLDivElement>) => {
     if (ignoreNextClick.current) {
       ignoreNextClick.current = false;
       return;
     }
     if (!boardRef.current) return;
 
-    const boardRect = boardRef.current.getBoundingClientRect();
-    const relX = e.clientX - boardRect.left;
-    const relY = e.clientY - boardRect.top;
-    const file = Math.floor((relX / boardRect.width) * 8) + 1;
-    const rank = 8 - Math.floor((relY / boardRect.height) * 8); // 1-8
-    const clickedPosition: Coordinates = { rank, file };
+    const clickedPosition: Coordinates = getTargetPosition(
+      e.clientX,
+      e.clientY
+    );
 
     // A Piece Selected And Clicked On Another Square
     if (
@@ -143,7 +138,7 @@ export default function Board() {
       onMouseDown={grabPieceHandler}
       onClick={handleBoardClick}
     >
-      <div className="squares cursor-pointer">
+      <div className="squares">
         <Squares
           highlight={board.validMoves}
           ranks={RANKS}
