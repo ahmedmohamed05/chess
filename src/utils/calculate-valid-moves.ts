@@ -9,7 +9,7 @@ export default function calculateValidMoves(
   piece: Piece,
   turn: PieceColor
 ): Coordinates[] {
-  const moves: Coordinates[] = [];
+  let moves: Coordinates[] = [];
   if (turn !== piece.color) return [];
 
   const { rank, file } = piece.coordinates;
@@ -63,8 +63,9 @@ export default function calculateValidMoves(
           file,
         };
         if (isValidCoordinates(twoSquaresAhead)) {
-          if (!checkPieceAt(pieces, twoSquaresAhead))
-            moves.push(twoSquaresAhead);
+          if (!checkPieceAt(pieces, frontSquare))
+            if (!checkPieceAt(pieces, twoSquaresAhead))
+              moves.push(twoSquaresAhead);
         }
       }
 
@@ -93,21 +94,16 @@ export default function calculateValidMoves(
       const moves: Coordinates[] = [];
 
       // Get All Possible Moves And Filter Them
-      const possibleMoves: Coordinates[] = [];
-      possibleMoves.push({ rank: rank + 2, file: file - 1 }); // Up - Left
-      possibleMoves.push({ rank: rank + 2, file: file + 1 }); // Up - Right
-      possibleMoves.push({ rank: rank + 1, file: file - 2 }); // Left - Up
-      possibleMoves.push({ rank: rank + 1, file: file + 2 }); // Right - Up
-      possibleMoves.push({ rank: rank - 1, file: file - 2 }); // Left - Down
-      possibleMoves.push({ rank: rank - 1, file: file + 2 }); // Right - Down
-      possibleMoves.push({ rank: rank - 2, file: file - 1 }); // Down - Left
-      possibleMoves.push({ rank: rank - 2, file: file + 1 }); // Down - Right
+      moves.push({ rank: rank + 2, file: file - 1 }); // Up - Left
+      moves.push({ rank: rank + 2, file: file + 1 }); // Up - Right
+      moves.push({ rank: rank + 1, file: file - 2 }); // Left - Up
+      moves.push({ rank: rank + 1, file: file + 2 }); // Right - Up
+      moves.push({ rank: rank - 1, file: file - 2 }); // Left - Down
+      moves.push({ rank: rank - 1, file: file + 2 }); // Right - Down
+      moves.push({ rank: rank - 2, file: file - 1 }); // Down - Left
+      moves.push({ rank: rank - 2, file: file + 1 }); // Down - Right
 
-      for (const move of possibleMoves) {
-        if (validMove(move)) moves.push(move);
-      }
-
-      return moves;
+      return moves.filter((move) => validMove(move)); // Filter Valid Moves And Return Them
     }
 
     // TODO: Refactor this
@@ -229,8 +225,39 @@ export default function calculateValidMoves(
       return [...rookMovements, ...bishopMovements];
     }
 
-    // case "king": {
-    // }
+    case "king": {
+      // Add All Possible Moves
+      moves.push({ rank: rank + 1, file: file - 1 }); // Up - Left
+      moves.push({ rank: rank + 1, file }); // Up
+      moves.push({ rank: rank + 1, file: file + 1 }); // Up - Right
+      moves.push({ rank, file: file - 1 }); // Left
+      moves.push({ rank, file: file + 1 }); // Right
+      moves.push({ rank: rank - 1, file: file - 1 }); // Down - Left
+      moves.push({ rank: rank - 1, file }); // Down
+      moves.push({ rank: rank - 1, file: file + 1 }); // Down - Right
+
+      moves = moves.filter((move) => validMove(move)); // Filter The Moves
+
+      // If The King Moved
+      if (piece.hasMoved) return moves;
+
+      // Short Castling O-O
+      // Looking For Pieces In The Way
+      if (checkPieceAt(pieces, { rank, file: 6 })) return moves; // Light-Squares Bishop
+      if (checkPieceAt(pieces, { rank, file: 7 })) return moves; // Knight
+      const hRook = getPiece(pieces, { rank, file: 8 });
+      if (hRook && !hRook.hasMoved) moves.push({ rank, file: file + 2 });
+
+      // Long Castling O-O-O
+      // Looking For Pieces In The Way
+      if (checkPieceAt(pieces, { rank, file: 4 })) return moves; // Queen
+      if (checkPieceAt(pieces, { rank, file: 3 })) return moves; // Dark-Squares Bishop
+      if (checkPieceAt(pieces, { rank, file: 2 })) return moves; // Knight
+      const aRook = getPiece(pieces, { rank, file: 1 });
+      if (aRook && !aRook.hasMoved) moves.push({ rank, file: file - 2 });
+
+      return moves;
+    }
   }
   return [];
 }
