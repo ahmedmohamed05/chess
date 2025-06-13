@@ -38,8 +38,8 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
       );
       if (!isValidMove) return;
 
-      const selectedPiece = board.selectedPiece!;
-      const fromPosition = selectedPiece.coordinates;
+      const piece = board.selectedPiece!;
+      const fromPosition = piece.coordinates;
 
       setBoard((prev) => {
         const newPieces = [...prev.pieces];
@@ -47,11 +47,11 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
           sameCoordinates(p.coordinates, toPosition)
         );
 
-        // Prevent the piece from itself
+        // Prevent Moving The Same Square
         if (sameCoordinates(fromPosition, toPosition)) return prev;
 
         const move: Move = {
-          piece: selectedPiece,
+          piece: piece,
           from: fromPosition,
           to: toPosition,
           captured: capturedIndex >= 0 ? newPieces[capturedIndex] : undefined,
@@ -67,11 +67,28 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
           hasMoved: true,
         };
 
-        if (capturedIndex >= 0) {
-          newPieces.splice(capturedIndex, 1);
-        }
+        if (capturedIndex >= 0) newPieces.splice(capturedIndex, 1);
 
-        // TODO: Handle special moves castling, en passant and promotion
+        // Castling
+        const isCastling = Math.abs(fromPosition.file - toPosition.file) === 2; // Two squares
+        if (piece.type === "king" && isCastling) {
+          move.castle = toPosition.file > fromPosition.file ? "short" : "long";
+
+          const rookFile = move.castle === "short" ? 8 : 1;
+          const newRookFile = move.castle === "short" ? 6 : 4;
+          const rookRank = piece.color === "light" ? 1 : 8;
+
+          const rookIndex = newPieces.findIndex(
+            (p) =>
+              p.type === "rook" &&
+              sameCoordinates(p.coordinates, { rank: rookRank, file: rookFile })
+          );
+          newPieces[rookIndex] = {
+            ...newPieces[rookIndex],
+            coordinates: { rank: rookRank, file: newRookFile },
+            hasMoved: true,
+          };
+        }
 
         return {
           pieces: newPieces,

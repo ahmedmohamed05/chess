@@ -27,6 +27,8 @@ export interface Move {
   to: Coordinates;
   piece: Piece;
   captured?: Piece;
+  castle?: "short" | "long";
+  promotion?: Exclude<PieceType, "king" | "pawn">;
 }
 
 export interface BoardState {

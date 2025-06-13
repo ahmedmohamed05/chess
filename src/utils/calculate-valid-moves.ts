@@ -224,6 +224,7 @@ export default function calculateValidMoves(
       moves = moves.filter((move) => validMove(move)); // Filter The Moves
 
       // TODO: Check If There Is No Checks In The Way
+
       // If The King Moved
       if (piece.hasMoved) return moves;
 
