@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useRef, type MouseEvent } from "react";
-import { RANKS, FILES, INIT_BOARD_STATE } from "../constants";
+import { RANKS, FILES } from "../constants";
 import Squares from "./Squares";
-import { useBoard } from "../hooks/useBoard";
 import sameCoordinates from "../utils/check-coordinates";
-import type { Coordinates } from "../types";
-
-function validPiece(el: HTMLElement): boolean {
-  return el.classList.contains("square") && el.dataset.piece == "true";
-}
+import type { BoardState, Coordinates, Piece } from "../types";
+import validPiece from "../utils/valid-piece";
 
 type DomMouseEvent = globalThis.MouseEvent;
 
-export default function Board() {
-  const { board, selectPiece, movePiece } = useBoard(INIT_BOARD_STATE);
+export interface BoardProps {
+  board: BoardState;
+  movePiece: (to: Coordinates) => void;
+  selectPiece: (piece: Piece | null) => void;
+}
 
+export default function Board({
+  board,
+  movePiece: movePieceHandler,
+  selectPiece,
+}: BoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   const activePieceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -28,7 +32,7 @@ export default function Board() {
     return { file, rank };
   }, []);
 
-  const movePieceHandler = useCallback((e: DomMouseEvent) => {
+  const dragPieceHandler = useCallback((e: DomMouseEvent) => {
     if (!activePieceRef.current || !isDragging.current) return;
 
     const { clientX: x, clientY: y } = e;
@@ -56,14 +60,14 @@ export default function Board() {
       if (!activePieceRef.current || !boardRef.current || !isDragging.current)
         return;
       const piece = activePieceRef.current;
-      movePiece(getTargetPosition(e.clientX, e.clientY));
+      movePieceHandler(getTargetPosition(e.clientX, e.clientY));
       // Reset
       piece.style.position = "static";
       activePieceRef.current = null;
       isDragging.current = false;
       ignoreNextClick.current = true; // No Piece Selected
     },
-    [movePiece, getTargetPosition]
+    [movePieceHandler, getTargetPosition]
   );
 
   const grabPieceHandler = (e: MouseEvent<HTMLDivElement>) => {
@@ -108,7 +112,7 @@ export default function Board() {
       board.selectedPiece &&
       board.validMoves.some((move) => sameCoordinates(move, clickedPosition))
     ) {
-      movePiece(clickedPosition);
+      movePieceHandler(clickedPosition);
       return;
     } else {
       selectPiece(null); // Deselecting a piece when clicking empty square
@@ -117,7 +121,7 @@ export default function Board() {
 
   // Setup and cleanup event listeners
   useEffect(() => {
-    const moveHandler = (e: DomMouseEvent) => movePieceHandler(e);
+    const moveHandler = (e: DomMouseEvent) => dragPieceHandler(e);
     const dropHandler = (e: DomMouseEvent) => dropPieceHandler(e);
 
     // Add document-level listeners
@@ -129,7 +133,7 @@ export default function Board() {
       document.removeEventListener("mousemove", moveHandler);
       document.removeEventListener("mouseup", dropHandler);
     };
-  }, [movePieceHandler, dropPieceHandler]);
+  }, [dragPieceHandler, dropPieceHandler]);
 
   return (
     <div
