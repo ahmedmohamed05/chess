@@ -106,107 +106,92 @@ export default function calculateValidMoves(
       return moves.filter((move) => validMove(move)); // Filter Valid Moves And Return Them
     }
 
-    // TODO: Refactor this
     case "rook": {
-      // UP
-      {
-        const move: Coordinates = { rank: rank + 1, file };
+      // Up And Down
+      const getFileMovements = (direction: "up" | "down") => {
+        const fileMoves = [];
+        const move: Coordinates = {
+          rank: direction == "up" ? rank + 1 : rank - 1,
+          file,
+        };
         while (isValidCoordinates(move)) {
           const p = getPiece(pieces, move);
           if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.rank += 1;
+          fileMoves.push({ ...move }); // Copy the object
+          move.rank += direction == "up" ? 1 : -1; // -1 similar to subtracting 1
           if (p) break; // Once we meet a piece we stop, Can't move through a  piece
         }
-      }
-      // Down
-      {
-        const move: Coordinates = { rank: rank - 1, file };
+        return fileMoves;
+      };
+
+      const getRankMovements = (direction: "left" | "right") => {
+        const rankMoves = [];
+        const move: Coordinates = {
+          rank,
+          file: direction == "left" ? file - 1 : file + 1,
+        };
         while (isValidCoordinates(move)) {
           const p = getPiece(pieces, move);
           if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.rank -= 1;
+          rankMoves.push({ ...move }); // Copy the object
+          move.file -= direction == "left" ? 1 : -1; //
           if (p) break; // Once we meet a piece we stop, Can't move through a  piece
         }
-      }
-      // Left
-      {
-        const move: Coordinates = { rank, file: file - 1 };
-        while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
-          if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.file -= 1;
-          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
-        }
-      }
-      // Right
-      {
-        const move: Coordinates = { rank, file: file + 1 };
-        while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
-          if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.file += 1;
-          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
-        }
-      }
+        return rankMoves;
+      };
+
+      moves = [
+        ...getFileMovements("up"),
+        ...getFileMovements("down"),
+        ...getRankMovements("left"),
+        ...getRankMovements("right"),
+      ];
+
       return moves;
     }
 
-    // TODO: Refactor this
     case "bishop": {
-      // Up - Right
-      {
-        const move: Coordinates = { rank: rank + 1, file: file + 1 };
+      const mainDiagonalMoves = (direction: "up" | "down") => {
+        const mainMoves: Coordinates[] = [];
+        const move: Coordinates = {
+          rank: rank + (direction === "up" ? 1 : -1),
+          file: file + (direction === "up" ? -1 : 1),
+        };
         while (isValidCoordinates(move)) {
           const p = getPiece(pieces, move);
           if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.rank += 1;
-          move.file += 1;
+          mainMoves.push({ ...move }); // Copy the object
+          move.rank += direction === "up" ? 1 : -1;
+          move.file += direction === "up" ? -1 : 1;
           if (p) break; // Once we meet a piece we stop, Can't move through a  piece
         }
-      }
-      // Down - Right
-      {
-        const move: Coordinates = { rank: rank - 1, file: file + 1 };
-        while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
-          if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.rank -= 1;
-          move.file += 1;
-          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
-        }
-      }
-      // Up - Left
-      {
-        const move: Coordinates = { rank: rank + 1, file: file - 1 };
-        while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
-          if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.rank += 1;
-          move.file -= 1;
-          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
-        }
-      }
-      // Down - Left
-      {
-        const move: Coordinates = { rank: rank - 1, file: file - 1 };
-        while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
-          if (p && p.color === piece.color) break;
-          moves.push({ ...move }); // Copy the object
-          move.rank -= 1;
-          move.file -= 1;
-          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
-        }
-      }
+        return mainMoves;
+      };
 
-      console.log(moves);
+      const antiDiagonalMoves = (direction: "up" | "down") => {
+        const antiMoves: Coordinates[] = [];
+        const move: Coordinates = {
+          rank: rank + (direction == "up" ? 1 : -1),
+          file: file + (direction == "up" ? 1 : -1),
+        };
+        while (isValidCoordinates(move)) {
+          const p = getPiece(pieces, move);
+          if (p && p.color === piece.color) break;
+          antiMoves.push({ ...move }); // Copy the object
+          move.rank += direction == "up" ? 1 : -1;
+          move.file += direction == "up" ? 1 : -1;
+          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
+        }
+        return antiMoves;
+      };
+
+      moves = [
+        ...mainDiagonalMoves("up"),
+        ...mainDiagonalMoves("down"),
+        ...antiDiagonalMoves("up"),
+        ...antiDiagonalMoves("down"),
+      ];
+
       return moves;
     }
 
