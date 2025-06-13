@@ -110,6 +110,7 @@ export default function calculateValidMoves(
       return moves;
     }
 
+    // TODO: Refactor this
     case "rook": {
       // UP
       {
@@ -157,12 +158,66 @@ export default function calculateValidMoves(
       }
       return moves;
     }
+
+    // TODO: Refactor this
+    case "bishop": {
+      // Up - Right
+      {
+        const move: Coordinates = { rank: rank + 1, file: file + 1 };
+        while (isValidCoordinates(move)) {
+          const p = getPiece(pieces, move);
+          if (p && p.color === piece.color) break;
+          moves.push({ ...move }); // Copy the object
+          move.rank += 1;
+          move.file += 1;
+          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
+        }
+      }
+      // Down - Right
+      {
+        const move: Coordinates = { rank: rank - 1, file: file + 1 };
+        while (isValidCoordinates(move)) {
+          const p = getPiece(pieces, move);
+          if (p && p.color === piece.color) break;
+          moves.push({ ...move }); // Copy the object
+          move.rank -= 1;
+          move.file += 1;
+          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
+        }
+      }
+      // Up - Left
+      {
+        const move: Coordinates = { rank: rank + 1, file: file - 1 };
+        while (isValidCoordinates(move)) {
+          const p = getPiece(pieces, move);
+          if (p && p.color === piece.color) break;
+          moves.push({ ...move }); // Copy the object
+          move.rank += 1;
+          move.file -= 1;
+          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
+        }
+      }
+      // Down - Left
+      {
+        const move: Coordinates = { rank: rank - 1, file: file - 1 };
+        while (isValidCoordinates(move)) {
+          const p = getPiece(pieces, move);
+          if (p && p.color === piece.color) break;
+          moves.push({ ...move }); // Copy the object
+          move.rank -= 1;
+          move.file -= 1;
+          if (p) break; // Once we meet a piece we stop, Can't move through a  piece
+        }
+      }
+
+      console.log(moves);
+      return moves;
+    }
+
     // case "king": {
     // }
-    // case "queen": {
-    // }
 
-    // case "bishop": {
+    // case "queen": {
     // }
   }
   return [];
