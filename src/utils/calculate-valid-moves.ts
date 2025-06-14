@@ -7,7 +7,9 @@ import getPiece from "./get-piece";
 export default function calculateValidMoves(
   pieces: Piece[],
   piece: Piece,
-  turn: PieceColor
+  turn: PieceColor,
+  enPassantTarget?: Coordinates
+  // lastMove?: Move
 ): Coordinates[] {
   let moves: Coordinates[] = [];
   if (turn !== piece.color) return [];
@@ -36,6 +38,7 @@ export default function calculateValidMoves(
         if (!checkPieceAt(pieces, frontSquare)) moves.push(frontSquare);
       }
 
+      // TODO: refactor this to a single function for normal capturing
       // Check for capturing left
       const frontLeft: Coordinates = {
         file: file - 1,
@@ -69,30 +72,14 @@ export default function calculateValidMoves(
         }
       }
 
-      // TODO: En Passant
-      // const squareToTheLeft: Coordinates = { rank, file: file - 1 };
-      // if (isValidCoordinates(squareToTheLeft)) {
-      //   const p = getPiece(pieces, squareToTheLeft);
-      //   console.log(p);
-      //   if (p && p.color !== piece.color && !p.hasMoved) {
-      //     moves.push(squareToTheLeft);
-      //   }
-      // }
-      // const squareToTheRight: Coordinates = { rank, file: file + 1 };
+      // En Passant
+      const enPassant = isLight ? rank === 5 : rank === 3;
+      if (enPassant && enPassantTarget) moves.push(enPassantTarget);
 
-      // if (isValidCoordinates(squareToTheRight)) {
-      //   const p = getPiece(pieces, squareToTheRight);
-      //   if (p && p.color !== piece.color && !p.hasMoved) {
-      //     moves.push(squareToTheRight);
-      //   }
-      // }
-
-      return moves;
+      break;
     }
 
     case "knight": {
-      const moves: Coordinates[] = [];
-
       // Get All Possible Moves And Filter Them
       moves.push({ rank: rank + 2, file: file - 1 }); // Up - Left
       moves.push({ rank: rank + 2, file: file + 1 }); // Up - Right
@@ -103,7 +90,8 @@ export default function calculateValidMoves(
       moves.push({ rank: rank - 2, file: file - 1 }); // Down - Left
       moves.push({ rank: rank - 2, file: file + 1 }); // Down - Right
 
-      return moves.filter((move) => validMove(move)); // Filter Valid Moves And Return Them
+      moves = moves.filter((move) => validMove(move)); // Filter Valid Moves And Return Them
+      break;
     }
 
     case "rook": {
@@ -147,7 +135,7 @@ export default function calculateValidMoves(
         ...getRankMovements("right"),
       ];
 
-      return moves;
+      break;
     }
 
     case "bishop": {
@@ -192,10 +180,10 @@ export default function calculateValidMoves(
         ...antiDiagonalMoves("down"),
       ];
 
-      return moves;
+      break;
     }
 
-    // It's just a rook + bishop
+    // It's just a rook + bishop use can use recursion
     case "queen": {
       const rookMovements = calculateValidMoves(
         pieces,
@@ -226,7 +214,7 @@ export default function calculateValidMoves(
       // TODO: Check If There Is No Checks In The Way
 
       // If The King Moved
-      if (piece.hasMoved) return moves;
+      if (piece.hasMoved) break;
 
       // Short Castling O-O
       // Looking For Pieces In The Way
@@ -243,9 +231,8 @@ export default function calculateValidMoves(
       const leftKnight = checkPieceAt(pieces, { rank, file: 2 });
       if (!queen && !darkBishop && !leftKnight && aRook && !aRook.hasMoved)
         moves.push({ rank, file: file - 2 });
-
-      return moves;
     }
   }
-  return [];
+
+  return moves;
 }

@@ -9,10 +9,15 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
 
   const validMoves = useMemo(() => {
     if (board.selectedPiece) {
-      return calculateValidMoves(board.pieces, board.selectedPiece, board.turn);
+      return calculateValidMoves(
+        board.pieces,
+        board.selectedPiece,
+        board.turn,
+        board.enPassantTarget
+      );
     }
     return [];
-  }, [board.pieces, board.selectedPiece, board.turn]);
+  }, [board.pieces, board.selectedPiece, board.turn, board.enPassantTarget]);
 
   const selectPiece = useCallback(
     (piece: Piece | null) => {
@@ -43,7 +48,7 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
 
       setBoard((prev) => {
         const newPieces = [...prev.pieces];
-        const capturedIndex = newPieces.findIndex((p) =>
+        let capturedIndex = newPieces.findIndex((p) =>
           sameCoordinates(p.coordinates, toPosition)
         );
 
@@ -67,8 +72,6 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
           hasMoved: true,
         };
 
-        if (capturedIndex >= 0) newPieces.splice(capturedIndex, 1);
-
         // Castling
         const isCastling = Math.abs(fromPosition.file - toPosition.file) === 2; // Two squares
         if (piece.type === "king" && isCastling) {
@@ -90,6 +93,42 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
           };
         }
 
+        // Setting En Passant Target
+        const enPassantTarget: Coordinates | undefined =
+          piece.type === "pawn" &&
+          Math.abs(fromPosition.rank - toPosition.rank) === 2
+            ? {
+                rank: (fromPosition.rank + toPosition.rank) / 2,
+                file: fromPosition.file,
+              }
+            : undefined;
+
+        // En Passant
+        if (
+          piece.type === "pawn" &&
+          prev.enPassantTarget &&
+          sameCoordinates(prev.enPassantTarget, toPosition)
+        ) {
+          const pawnIndex = newPieces.findIndex((p) =>
+            sameCoordinates(p.coordinates, fromPosition)
+          );
+          newPieces[pawnIndex] = {
+            ...newPieces[pawnIndex],
+            coordinates: toPosition,
+            hasMoved: true,
+          };
+
+          const capturedPawnCoordinates =
+            prev.history[prev.history.length - 1].to;
+
+          capturedIndex = newPieces.findIndex((p) =>
+            sameCoordinates(p.coordinates, capturedPawnCoordinates)
+          );
+        }
+
+        // Remove Captured Piece
+        if (capturedIndex >= 0) newPieces.splice(capturedIndex, 1);
+
         return {
           pieces: newPieces,
           turn: prev.turn === "light" ? "dark" : "light",
@@ -97,6 +136,7 @@ export function useBoard(initBoard: BoardState = INIT_BOARD_STATE) {
           validMoves: [],
           selectedPiece: null,
           status: "playing",
+          enPassantTarget,
         };
       });
     },

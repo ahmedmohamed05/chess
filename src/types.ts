@@ -38,4 +38,5 @@ export interface BoardState {
   validMoves: Coordinates[];
   history: Move[];
   status: "playing" | "check" | "checkmate" | "draw" | "stalemate";
+  enPassantTarget?: Coordinates;
 }
