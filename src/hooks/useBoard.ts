@@ -160,7 +160,11 @@ export function useBoard(
             newPieces.delete(coordinateToKey(rookCoords));
             newPieces.set(
               coordinateToKey({ rank: rookRank, file: newRookFile }),
-              { ...rook, hasMoved: true }
+              {
+                ...rook,
+                coordinates: { rank: rookRank, file: newRookFile },
+                hasMoved: true,
+              }
             );
           }
         }

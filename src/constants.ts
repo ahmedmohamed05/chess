@@ -167,6 +167,41 @@ for (const file of FILES) {
 //   coordinates: { rank: 5, file: 4 },
 // });
 
+// * Can't move the rook after castling
+// INIT_POSITION.set(coordinateToKey({ rank: 1, file: 5 }), {
+//   color: "light",
+//   coordinates: { rank: 1, file: 5 },
+//   type: "king",
+// });
+
+// INIT_POSITION.set(coordinateToKey({ rank: 8, file: 5 }), {
+//   color: "dark",
+//   coordinates: { rank: 8, file: 5 },
+//   type: "king",
+// });
+
+// INIT_POSITION.set(coordinateToKey({ rank: 8, file: 8 }), {
+//   color: "dark",
+//   coordinates: { rank: 8, file: 8 },
+//   type: "rook",
+// });
+// INIT_POSITION.set(coordinateToKey({ rank: 8, file: 1 }), {
+//   color: "dark",
+//   coordinates: { rank: 8, file: 1 },
+//   type: "rook",
+// });
+
+// INIT_POSITION.set(coordinateToKey({ rank: 1, file: 8 }), {
+//   color: "light",
+//   coordinates: { rank: 1, file: 8 },
+//   type: "rook",
+// });
+// INIT_POSITION.set(coordinateToKey({ rank: 1, file: 1 }), {
+//   color: "light",
+//   coordinates: { rank: 1, file: 1 },
+//   type: "rook",
+// });
+
 export const INIT_BOARD_STATE: BoardState = {
   pieces: INIT_POSITION,
   selectedPiece: null,
