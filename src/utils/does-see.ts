@@ -1,9 +1,10 @@
-import type { Coordinates, Piece } from "../types";
+import type { Coordinates, Piece, PiecesMap } from "../types";
 import sameCoordinates from "./check-coordinates";
 import isValidCoordinates from "./coordinates-range";
 import getAllPossibleMoves from "./possible-moves";
 
 export default function pieceCanSee(
+  pieces: PiecesMap,
   piece: Piece,
   square: Coordinates
 ): boolean {
@@ -44,6 +45,7 @@ export default function pieceCanSee(
       }
       return false;
     }
+
     case "bishop": {
       const mainDiagonal = (isUp: boolean) => {
         for (let i = 1; i <= 8 - rank; i++) {

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, type MouseEvent } from "react";
-import { RANKS, FILES } from "../constants";
 import Squares from "./Squares";
 import sameCoordinates from "../utils/check-coordinates";
 import type { BoardState, Coordinates, Piece } from "../types";
 import validPiece from "../utils/valid-piece";
+import { coordinateToKey } from "../utils/key-coordinate-swap";
 
 type DomMouseEvent = globalThis.MouseEvent;
 
@@ -74,13 +74,14 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
 
     const file = Number(target.dataset.file);
     const rank = Number(target.dataset.rank);
-    const pieceIndex = board.pieces.findIndex((p) =>
-      sameCoordinates(p.coordinates, { file, rank })
-    );
+    // const pieceIndex = board.pieces.findIndex((p) =>
+    //   sameCoordinates(p.coordinates, { file, rank })
+    // );
+    const piece = board.pieces.get(coordinateToKey({ rank, file }));
 
-    if (pieceIndex < 0) return;
+    if (!piece) return;
 
-    selectPiece(board.pieces[pieceIndex]);
+    selectPiece(piece);
 
     activePieceRef.current = target;
     isDragging.current = true;
@@ -139,12 +140,7 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
       onClick={handleBoardClick}
     >
       <div className="squares">
-        <Squares
-          highlight={board.moves}
-          ranks={RANKS}
-          files={FILES}
-          position={board.pieces}
-        />
+        <Squares highlight={board.moves} pieces={board.pieces} />
       </div>
     </div>
   );

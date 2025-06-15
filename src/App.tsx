@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import "./app.css";
 import Board from "./components/Board";
 import { INIT_BOARD_STATE } from "./constants";
@@ -5,6 +6,10 @@ import { useBoard } from "./hooks/useBoard";
 
 export default function App() {
   const { board, selectPiece, movePiece } = useBoard(INIT_BOARD_STATE);
+
+  useEffect(() => {
+    console.log(board.pieces);
+  }, [board.pieces]);
 
   return (
     <main className="relative h-dvh flex justify-center items-center gap-5 bg-gray-800">

@@ -4,13 +4,13 @@ import type {
   Coordinates,
   Move,
   Piece,
+  PiecesMap,
   useBoardType,
 } from "../types";
 import { INIT_BOARD_STATE } from "../constants";
 import sameCoordinates from "../utils/check-coordinates";
 import calculateValidMoves from "../utils/calculate-valid-moves";
-import getCastlingSquares from "../utils/get-castling-squares";
-import pieceCanSee from "../utils/does-see";
+import { coordinateToKey } from "../utils/key-coordinate-swap";
 
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
@@ -30,24 +30,28 @@ export function useBoard(
     if (piece.type !== "king") return moves;
     if (piece.hasMoved) return moves;
 
-    const castlingSquares = getCastlingSquares(turn);
-    const opponentPieces = pieces.filter((p) => p.color !== turn);
+    // const opponentPieces = pieces.filter((p) => p.color !== turn);
+    const opponentPieces: PiecesMap = new Map();
+    for (const [key, piece] of pieces) {
+      if (piece.color !== turn) opponentPieces.set(key, piece);
+    }
 
+    // TODO: Fix pieceCanSee and re-implement this
     // TODO: Fix it's not removing the moves
     // Remove the move if can't castle
-    for (const piece of opponentPieces) {
-      for (const square of castlingSquares) {
-        // if (piece.type === "knight") console.log(square, piece);
-        if (pieceCanSee(piece, square)) {
-          const moveIndex = moves.findIndex((move) =>
-            sameCoordinates(move, square)
-          );
-          if (moveIndex >= 0) {
-            console.log(38);
-          }
-        }
-      }
-    }
+    // const castlingSquares = getCastlingSquares(turn);
+    // for (const piece of opponentPieces) {
+    //   for (const square of castlingSquares) {
+    //     if (pieceCanSee(piece, square)) {
+    //       const moveIndex = moves.findIndex((move) =>
+    //         sameCoordinates(move, square)
+    //       );
+    //       if (moveIndex >= 0) {
+    //         console.log(38);
+    //       }
+    //     }
+    //   }
+    // }
 
     return moves;
   }, [board.pieces, board.selectedPiece, board.turn, board.enPassantTarget]);
@@ -68,7 +72,6 @@ export function useBoard(
     [board.turn, validMoves]
   );
 
-  // TODO: fix castling
   const movePiece = useCallback(
     (toPosition: Coordinates) => {
       if (!board.selectedPiece) return;
@@ -92,17 +95,19 @@ export function useBoard(
       if (sameCoordinates(fromPosition, toPosition)) return;
 
       setBoard((prev) => {
-        const newPieces = [...prev.pieces];
+        const newPieces = new Map(prev.pieces);
 
-        let capturedIndex = newPieces.findIndex((p) =>
-          sameCoordinates(p.coordinates, toPosition)
-        );
+        // let capturedIndex = newPieces.findIndex((p) =>
+        //   sameCoordinates(p.coordinates, toPosition)
+        // );
+        let capturedPiece = newPieces.get(coordinateToKey(toPosition));
 
         const move: Move = {
-          piece: piece,
+          piece,
           from: fromPosition,
           to: toPosition,
-          captured: capturedIndex >= 0 ? newPieces[capturedIndex] : undefined,
+          // captured: capturedIndex >= 0 ? newPieces[capturedIndex] : undefined,
+          captured: capturedPiece,
         };
 
         // Special Moves (En Passant, Castling and Promotion)
@@ -124,55 +129,89 @@ export function useBoard(
           sameCoordinates(prev.enPassantTarget, toPosition);
 
         if (isEnPassant) {
-          const pawnIndex = newPieces.findIndex((p) =>
-            sameCoordinates(p.coordinates, fromPosition)
-          );
-          newPieces[pawnIndex] = {
-            ...newPieces[pawnIndex],
+          // const pawnIndex = newPieces.findIndex((p) =>
+          //   sameCoordinates(p.coordinates, fromPosition)
+          // );
+
+          // It's not undefined because it's can move
+          const pawn = newPieces.get(coordinateToKey(fromPosition))!;
+
+          // newPieces[pawnIndex] = {
+          //   ...newPieces[pawnIndex],
+          //   coordinates: toPosition,
+          //   hasMoved: true,
+          // };
+          // Deleting the old one and setting new one with new coordinates
+          newPieces.delete(coordinateToKey(pawn.coordinates));
+          newPieces.set(coordinateToKey(toPosition), {
+            ...pawn,
             coordinates: toPosition,
-            hasMoved: true,
-          };
+          });
 
           const capturedPawnCoordinates =
-            prev.history[prev.history.length - 1].to;
+            prev.history[prev.history.length - 1].to; // En-Passant Must Apply On The Last Pawn Move
 
-          capturedIndex = newPieces.findIndex((p) =>
-            sameCoordinates(p.coordinates, capturedPawnCoordinates)
+          // capturedIndex = newPieces.findIndex((p) =>
+          //   sameCoordinates(p.coordinates, capturedPawnCoordinates)
+          // );
+          capturedPiece = newPieces.get(
+            coordinateToKey(capturedPawnCoordinates)
           );
-        } else if (prev.castling) {
-          const newFile = toPosition.file;
-          const oldFile = fromPosition.file;
-          move.castle = newFile > oldFile ? "short" : "long";
-
-          const rookFile = move.castle === "short" ? 8 : 1;
-          const newRookFile = move.castle === "short" ? 6 : 4;
-          const rookRank = piece.color === "light" ? 1 : 8;
-
-          const rookIndex = newPieces.findIndex(
-            (p) =>
-              p.type === "rook" &&
-              sameCoordinates(p.coordinates, { rank: rookRank, file: rookFile })
-          );
-          console.log(newPieces[rookIndex]);
-          newPieces[rookIndex] = {
-            ...newPieces[rookIndex],
-            coordinates: { rank: rookRank, file: newRookFile },
-            hasMoved: true,
-          };
-        } else {
-          // Moving Actual Piece
-          const pieceIndex = newPieces.findIndex((p) =>
-            sameCoordinates(p.coordinates, fromPosition)
-          );
-          newPieces[pieceIndex] = {
-            ...newPieces[pieceIndex],
-            coordinates: toPosition,
-            hasMoved: true,
-          };
         }
 
-        // Remove Captured Piece
-        if (capturedIndex >= 0) newPieces.splice(capturedIndex, 1);
+        const isCastling =
+          piece.type === "king" &&
+          Math.abs(fromPosition.file - toPosition.file) === 2; // Two squares King Move Means Castling
+        if (isCastling) {
+          move.castle = toPosition.file > fromPosition.file ? "short" : "long";
+          const rookRank = piece.color === "light" ? 1 : 8;
+          const rookFile = move.castle === "short" ? 8 : 1;
+          const rookCoords: Coordinates = { rank: rookRank, file: rookFile };
+          const newRookFile = move.castle === "short" ? 6 : 4;
+
+          // const rookIndex = newPieces.findIndex(
+          //   (p) =>
+          //     p.type === "rook" &&
+          //     sameCoordinates(p.coordinates, { rank: rookRank, file: rookFile })
+          // );
+          const rook = newPieces.get(coordinateToKey(rookCoords));
+
+          // Moving The Rook
+          // newPieces[rookIndex] = {
+          //   ...newPieces[rookIndex],
+          //   coordinates: { rank: rookRank, file: newRookFile },
+          //   hasMoved: true,
+          // };
+          if (rook && rook.type == "rook") {
+            newPieces.delete(coordinateToKey(rookCoords));
+            newPieces.set(
+              coordinateToKey({ rank: rookRank, file: newRookFile }),
+              { ...rook, hasMoved: true }
+            );
+          }
+        }
+
+        // Remove Captured Piece If Exist
+        // if (capturedIndex >= 0) newPieces.splice(capturedIndex, 1);
+        if (capturedPiece)
+          newPieces.delete(coordinateToKey(capturedPiece.coordinates));
+
+        // Moving Actual Piece
+        // const pieceIndex = newPieces.findIndex((p) =>
+        //   sameCoordinates(p.coordinates, fromPosition)
+        // );
+        //* const piece = newPieces.get(coordinateToKey(fromPosition))!;
+        // newPieces[pieceIndex] = {
+        //   ...newPieces[pieceIndex],
+        //   coordinates: toPosition,
+        //   hasMoved: true,
+        // };
+        newPieces.delete(coordinateToKey(fromPosition));
+        newPieces.set(coordinateToKey(toPosition), {
+          ...piece,
+          coordinates: toPosition,
+          hasMoved: true,
+        });
 
         return {
           ...prev,

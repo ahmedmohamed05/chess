@@ -31,8 +31,11 @@ export interface Move {
   promotion?: Exclude<PieceType, "king" | "pawn">;
 }
 
+export type CoordinateKey = `${number},${number}`;
+export type PiecesMap = Map<CoordinateKey, Piece>;
+
 export interface BoardState {
-  pieces: Piece[];
+  pieces: PiecesMap;
   moves: Coordinates[];
   turn: PieceColor;
   selectedPiece: Piece | null;

@@ -1,14 +1,11 @@
-import type { Coordinates, Piece, PieceColor } from "../types";
-import checkPieceAt from "./check-piece-at";
+import type { Coordinates, Piece, PieceColor, PiecesMap } from "../types";
 import isValidCoordinates from "./coordinates-range";
-import pieceCanSee from "./does-see";
-import getCastlingSquares from "./get-castling-squares";
-import getPiece from "./get-piece";
+import { coordinateToKey } from "./key-coordinate-swap";
 import getAllPossibleMoves from "./possible-moves";
 
 // All Moves Calculated From White Perspective
 export default function calculateValidMoves(
-  pieces: Piece[],
+  pieces: PiecesMap,
   piece: Piece,
   turn: PieceColor,
   enPassantTarget?: Coordinates
@@ -21,7 +18,7 @@ export default function calculateValidMoves(
   const validMove = (to: Coordinates): boolean => {
     if (!isValidCoordinates(to)) return false;
 
-    const p = getPiece(pieces, to);
+    const p = pieces.get(coordinateToKey(to));
     if (p && p.color === piece.color) return false;
 
     return true;
@@ -36,28 +33,28 @@ export default function calculateValidMoves(
         rank: isLight ? rank + 1 : rank - 1,
         file,
       };
-      if (isValidCoordinates(frontSquare)) {
-        if (!checkPieceAt(pieces, frontSquare)) moves.push(frontSquare);
-      }
+
+      // No need to validate coordinates
+      if (!pieces.has(coordinateToKey(frontSquare))) moves.push(frontSquare);
 
       // TODO: refactor this to a single function for normal capturing
       // Check for capturing left
-      const frontLeft: Coordinates = {
-        file: file - 1,
-        rank: isLight ? rank + 1 : rank - 1,
-      };
-      if (isValidCoordinates(frontLeft)) {
-        const ret = getPiece(pieces, frontLeft);
+      {
+        const frontLeft: Coordinates = {
+          file: file - 1,
+          rank: isLight ? rank + 1 : rank - 1,
+        };
+        const ret = pieces.get(coordinateToKey(frontLeft));
         if (ret && ret.color !== piece.color) moves.push(frontLeft);
       }
 
       // Check for capturing right
-      const frontRight: Coordinates = {
-        file: file + 1,
-        rank: isLight ? rank + 1 : rank - 1,
-      };
-      if (isValidCoordinates(frontRight)) {
-        const ret = getPiece(pieces, frontRight);
+      {
+        const frontRight: Coordinates = {
+          file: file + 1,
+          rank: isLight ? rank + 1 : rank - 1,
+        };
+        const ret = pieces.get(coordinateToKey(frontRight));
         if (ret && ret.color !== piece.color) moves.push(frontRight);
       }
 
@@ -67,9 +64,10 @@ export default function calculateValidMoves(
           rank: isLight ? rank + 2 : rank - 2,
           file,
         };
+
         if (isValidCoordinates(twoSquaresAhead)) {
-          if (!checkPieceAt(pieces, frontSquare))
-            if (!checkPieceAt(pieces, twoSquaresAhead))
+          if (!pieces.has(coordinateToKey(frontSquare)))
+            if (!pieces.has(coordinateToKey(twoSquaresAhead)))
               moves.push(twoSquaresAhead);
         }
       }
@@ -87,16 +85,22 @@ export default function calculateValidMoves(
         validMove(move)
       );
 
-      const opponentPieces = pieces.filter((p) => p.color !== turn);
-      const squares = getCastlingSquares(turn);
-
-      const invalidCastlingSquares = squares.filter((square) => {
-        if (opponentPieces.some((p) => pieceCanSee(p, square))) return square;
-      });
-
-      if (invalidCastlingSquares) {
-        // TODO: remove them
+      // const opponentPieces = pieces.filter((p) => p.color !== turn);
+      const opponentPieces: PiecesMap = new Map();
+      for (const [key, piece] of pieces) {
+        if (piece.color !== turn) opponentPieces.set(key, piece);
       }
+      // TODO: Remove invalid moves here or in the useBoard.ts
+
+      // const squares = getCastlingSquares(turn);
+
+      // const invalidCastlingSquares = squares.filter((square) => {
+      //   if (opponentPieces.some((p) => pieceCanSee(p, square))) return square;
+      // });
+
+      // if (invalidCastlingSquares) {
+      // // TODO: remove them
+      // }
       break;
     }
 
@@ -109,7 +113,7 @@ export default function calculateValidMoves(
           file,
         };
         while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
+          const p = pieces.get(coordinateToKey(move));
           if (p && p.color === piece.color) break;
           fileMoves.push({ ...move }); // Copy the object
           move.rank += direction == "up" ? 1 : -1; // -1 similar to subtracting 1
@@ -125,7 +129,7 @@ export default function calculateValidMoves(
           file: direction == "left" ? file - 1 : file + 1,
         };
         while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
+          const p = pieces.get(coordinateToKey(move));
           if (p && p.color === piece.color) break;
           rankMoves.push({ ...move }); // Copy the object
           move.file -= direction == "left" ? 1 : -1; //
@@ -152,7 +156,7 @@ export default function calculateValidMoves(
           file: file + (direction === "up" ? -1 : 1),
         };
         while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
+          const p = pieces.get(coordinateToKey(move));
           if (p && p.color === piece.color) break;
           mainMoves.push({ ...move }); // Copy the object
           move.rank += direction === "up" ? 1 : -1;
@@ -169,7 +173,7 @@ export default function calculateValidMoves(
           file: file + (direction == "up" ? 1 : -1),
         };
         while (isValidCoordinates(move)) {
-          const p = getPiece(pieces, move);
+          const p = pieces.get(coordinateToKey(move));
           if (p && p.color === piece.color) break;
           antiMoves.push({ ...move }); // Copy the object
           move.rank += direction == "up" ? 1 : -1;
@@ -219,17 +223,17 @@ export default function calculateValidMoves(
 
       // Short Castling O-O
       // Looking For Pieces In The Way
-      const hRook = getPiece(pieces, { rank, file: 8 });
-      const lightBishop = checkPieceAt(pieces, { rank, file: 6 });
-      const rightKnight = checkPieceAt(pieces, { rank, file: 7 });
+      const hRook = pieces.get(coordinateToKey({ rank, file: 8 }));
+      const lightBishop = pieces.has(coordinateToKey({ rank, file: 6 }));
+      const rightKnight = pieces.has(coordinateToKey({ rank, file: 7 }));
       if (!lightBishop && !rightKnight && hRook && !hRook.hasMoved)
         moves.push({ rank, file: file + 2 });
 
       // Long Castling O-O-O
-      const aRook = getPiece(pieces, { rank, file: 1 });
-      const queen = checkPieceAt(pieces, { rank, file: 4 });
-      const darkBishop = checkPieceAt(pieces, { rank, file: 3 });
-      const leftKnight = checkPieceAt(pieces, { rank, file: 2 });
+      const aRook = pieces.get(coordinateToKey({ rank, file: 1 }));
+      const queen = pieces.has(coordinateToKey({ rank, file: 4 }));
+      const darkBishop = pieces.has(coordinateToKey({ rank, file: 3 }));
+      const leftKnight = pieces.has(coordinateToKey({ rank, file: 2 }));
       if (!queen && !darkBishop && !leftKnight && aRook && !aRook.hasMoved)
         moves.push({ rank, file: file - 2 });
     }

@@ -1,27 +1,22 @@
-import type { Coordinates, Piece } from "../types";
+import { FILES, RANKS } from "../constants";
+import type { Coordinates, PiecesMap } from "../types";
 import sameCoordinates from "../utils/check-coordinates";
 import getPieceIcon from "../utils/get-piece-icon";
 import getColor from "../utils/get-square-color";
+import { coordinateToKey } from "../utils/key-coordinate-swap";
 import { getFileLetter } from "../utils/square-letter";
 import Square from "./Square";
 
 export interface SquaresProps {
-  ranks: number[];
-  files: number[];
-  position: Piece[];
+  pieces: PiecesMap;
   highlight: Coordinates[];
 }
 
-export default function Squares({
-  ranks,
-  files,
-  position,
-  highlight,
-}: SquaresProps) {
+export default function Squares({ pieces, highlight }: SquaresProps) {
   const squares = [];
 
-  for (let i = ranks.length - 1; i >= 0; i--) {
-    for (let j = 0; j < files.length; j++) {
+  for (let i = RANKS.length - 1; i >= 0; i--) {
+    for (let j = 0; j < FILES.length; j++) {
       const color = getColor(i + 1, j + 1);
       const rank = i + 1;
       const file = j + 1;
@@ -30,10 +25,12 @@ export default function Squares({
       let highlighted = false;
 
       // Render the icons
-      position.forEach((p) => {
-        if (sameCoordinates({ rank, file }, p.coordinates))
-          icon = getPieceIcon(p.type, p.color);
-      });
+      // pieces.forEach((p) => {
+      //   if (sameCoordinates({ rank, file }, p.coordinates))
+      //     icon = getPieceIcon(p.type, p.color);
+      // });
+      const isIcon = pieces.get(coordinateToKey({ rank, file }));
+      if (isIcon) icon = getPieceIcon(isIcon.type, isIcon.color);
 
       highlight.forEach((coordinates) => {
         if (sameCoordinates({ rank, file }, coordinates)) highlighted = true;
