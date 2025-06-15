@@ -1,0 +1,10 @@
+check if the piece sees the castling square for the opponent goto(2)
+set canCastle to false
+------------------------------------------------
+check all the other piece if one of them can see the castling square return true
+you must know the color of the king that wants to castle
+------------------------------------------------
+start checking from the square if it can see opponent pieces
+1: check diagonals for bishops queens, king and pawns (must be one square away)
+2: check ranks and files for the rooks and queens and king (king must be one square away)
+3: check for the knights

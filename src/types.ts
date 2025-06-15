@@ -33,10 +33,17 @@ export interface Move {
 
 export interface BoardState {
   pieces: Piece[];
+  moves: Coordinates[];
   turn: PieceColor;
   selectedPiece: Piece | null;
-  validMoves: Coordinates[];
   history: Move[];
   status: "playing" | "check" | "checkmate" | "draw" | "stalemate";
-  enPassantTarget?: Coordinates;
+  enPassantTarget: Coordinates | undefined;
+  castling: boolean | undefined;
+}
+
+export interface useBoardType {
+  board: BoardState;
+  selectPiece: (piece: Piece | null) => void;
+  movePiece: (toPosition: Coordinates) => void;
 }

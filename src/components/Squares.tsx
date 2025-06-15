@@ -35,8 +35,8 @@ export default function Squares({
           icon = getPieceIcon(p.type, p.color);
       });
 
-      highlight.forEach((p) => {
-        if (sameCoordinates({ rank, file }, p)) highlighted = true;
+      highlight.forEach((coordinates) => {
+        if (sameCoordinates({ rank, file }, coordinates)) highlighted = true;
       });
 
       squares.push(
@@ -47,8 +47,11 @@ export default function Squares({
           key={i + "-" + j}
         >
           <Square icon={icon} color={color} rank={rank} file={file} />
-          {highlighted && (
-            <div className="dot absolute w-4 aspect-square rounded-full bg-gray-500/60"></div>
+          {highlighted && !icon && (
+            <div className="absolute w-4 aspect-square rounded-full bg-gray-500/60"></div>
+          )}
+          {highlighted && icon && (
+            <div className="absolute w-[var(--square-size)] -scale-90 aspect-square rounded-full border-4 border-gray-500/60"></div>
           )}
         </div>
       );

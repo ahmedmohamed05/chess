@@ -13,11 +13,7 @@ export interface BoardProps {
   selectPiece: (piece: Piece | null) => void;
 }
 
-export default function Board({
-  board,
-  movePiece: movePieceHandler,
-  selectPiece,
-}: BoardProps) {
+export default function Board({ board, movePiece, selectPiece }: BoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   const activePieceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -60,14 +56,14 @@ export default function Board({
       if (!activePieceRef.current || !boardRef.current || !isDragging.current)
         return;
       const piece = activePieceRef.current;
-      movePieceHandler(getTargetPosition(e.clientX, e.clientY));
+      movePiece(getTargetPosition(e.clientX, e.clientY));
       // Reset
       piece.style.position = "static";
       activePieceRef.current = null;
       isDragging.current = false;
       ignoreNextClick.current = true; // No Piece Selected
     },
-    [movePieceHandler, getTargetPosition]
+    [movePiece, getTargetPosition]
   );
 
   const grabPieceHandler = (e: MouseEvent<HTMLDivElement>) => {
@@ -110,9 +106,9 @@ export default function Board({
     // A Piece Selected And Clicked On Another Square
     if (
       board.selectedPiece &&
-      board.validMoves.some((move) => sameCoordinates(move, clickedPosition))
+      board.moves.some((move) => sameCoordinates(move, clickedPosition))
     ) {
-      movePieceHandler(clickedPosition);
+      movePiece(clickedPosition);
       return;
     } else {
       selectPiece(null); // Deselecting a piece when clicking empty square
@@ -144,7 +140,7 @@ export default function Board({
     >
       <div className="squares">
         <Squares
-          highlight={board.validMoves}
+          highlight={board.moves}
           ranks={RANKS}
           files={FILES}
           position={board.pieces}

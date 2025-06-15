@@ -1,7 +1,10 @@
 import type { Coordinates, Piece, PieceColor } from "../types";
 import checkPieceAt from "./check-piece-at";
 import isValidCoordinates from "./coordinates-range";
+import pieceCanSee from "./does-see";
+import getCastlingSquares from "./get-castling-squares";
 import getPiece from "./get-piece";
+import getAllPossibleMoves from "./possible-moves";
 
 // All Moves Calculated From White Perspective
 export default function calculateValidMoves(
@@ -9,11 +12,10 @@ export default function calculateValidMoves(
   piece: Piece,
   turn: PieceColor,
   enPassantTarget?: Coordinates
-  // lastMove?: Move
 ): Coordinates[] {
-  let moves: Coordinates[] = [];
   if (turn !== piece.color) return [];
 
+  let moves: Coordinates[] = [];
   const { rank, file } = piece.coordinates;
 
   const validMove = (to: Coordinates): boolean => {
@@ -81,16 +83,20 @@ export default function calculateValidMoves(
 
     case "knight": {
       // Get All Possible Moves And Filter Them
-      moves.push({ rank: rank + 2, file: file - 1 }); // Up - Left
-      moves.push({ rank: rank + 2, file: file + 1 }); // Up - Right
-      moves.push({ rank: rank + 1, file: file - 2 }); // Left - Up
-      moves.push({ rank: rank + 1, file: file + 2 }); // Right - Up
-      moves.push({ rank: rank - 1, file: file - 2 }); // Left - Down
-      moves.push({ rank: rank - 1, file: file + 2 }); // Right - Down
-      moves.push({ rank: rank - 2, file: file - 1 }); // Down - Left
-      moves.push({ rank: rank - 2, file: file + 1 }); // Down - Right
+      moves = getAllPossibleMoves("knight", piece.coordinates).filter((move) =>
+        validMove(move)
+      );
 
-      moves = moves.filter((move) => validMove(move)); // Filter Valid Moves And Return Them
+      const opponentPieces = pieces.filter((p) => p.color !== turn);
+      const squares = getCastlingSquares(turn);
+
+      const invalidCastlingSquares = squares.filter((square) => {
+        if (opponentPieces.some((p) => pieceCanSee(p, square))) return square;
+      });
+
+      if (invalidCastlingSquares) {
+        // TODO: remove them
+      }
       break;
     }
 
@@ -183,7 +189,7 @@ export default function calculateValidMoves(
       break;
     }
 
-    // It's just a rook + bishop use can use recursion
+    // It's just a rook + bishop we can use recursion
     case "queen": {
       const rookMovements = calculateValidMoves(
         pieces,
@@ -200,21 +206,16 @@ export default function calculateValidMoves(
 
     case "king": {
       // Add All Possible Moves
-      moves.push({ rank: rank + 1, file: file - 1 }); // Up - Left
-      moves.push({ rank: rank + 1, file }); // Up
-      moves.push({ rank: rank + 1, file: file + 1 }); // Up - Right
-      moves.push({ rank, file: file - 1 }); // Left
-      moves.push({ rank, file: file + 1 }); // Right
-      moves.push({ rank: rank - 1, file: file - 1 }); // Down - Left
-      moves.push({ rank: rank - 1, file }); // Down
-      moves.push({ rank: rank - 1, file: file + 1 }); // Down - Right
+      moves = getAllPossibleMoves("king", piece.coordinates).filter((move) =>
+        validMove(move)
+      );
 
       moves = moves.filter((move) => validMove(move)); // Filter The Moves
 
-      // TODO: Check If There Is No Checks In The Way
-
       // If The King Moved
       if (piece.hasMoved) break;
+
+      // TODO: Check If There Is No Checks In The Way
 
       // Short Castling O-O
       // Looking For Pieces In The Way
