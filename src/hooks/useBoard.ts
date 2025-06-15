@@ -30,7 +30,6 @@ export function useBoard(
     if (piece.type !== "king") return moves;
     if (piece.hasMoved) return moves;
 
-    // const opponentPieces = pieces.filter((p) => p.color !== turn);
     const opponentPieces: PiecesMap = new Map();
     for (const [key, piece] of pieces) {
       if (piece.color !== turn) opponentPieces.set(key, piece);
@@ -96,10 +95,6 @@ export function useBoard(
 
       setBoard((prev) => {
         const newPieces = new Map(prev.pieces);
-
-        // let capturedIndex = newPieces.findIndex((p) =>
-        //   sameCoordinates(p.coordinates, toPosition)
-        // );
         let capturedPiece = newPieces.get(coordinateToKey(toPosition));
 
         const move: Move = {
@@ -129,18 +124,9 @@ export function useBoard(
           sameCoordinates(prev.enPassantTarget, toPosition);
 
         if (isEnPassant) {
-          // const pawnIndex = newPieces.findIndex((p) =>
-          //   sameCoordinates(p.coordinates, fromPosition)
-          // );
-
           // It's not undefined because it's can move
           const pawn = newPieces.get(coordinateToKey(fromPosition))!;
 
-          // newPieces[pawnIndex] = {
-          //   ...newPieces[pawnIndex],
-          //   coordinates: toPosition,
-          //   hasMoved: true,
-          // };
           // Deleting the old one and setting new one with new coordinates
           newPieces.delete(coordinateToKey(pawn.coordinates));
           newPieces.set(coordinateToKey(toPosition), {
@@ -169,19 +155,7 @@ export function useBoard(
           const rookCoords: Coordinates = { rank: rookRank, file: rookFile };
           const newRookFile = move.castle === "short" ? 6 : 4;
 
-          // const rookIndex = newPieces.findIndex(
-          //   (p) =>
-          //     p.type === "rook" &&
-          //     sameCoordinates(p.coordinates, { rank: rookRank, file: rookFile })
-          // );
           const rook = newPieces.get(coordinateToKey(rookCoords));
-
-          // Moving The Rook
-          // newPieces[rookIndex] = {
-          //   ...newPieces[rookIndex],
-          //   coordinates: { rank: rookRank, file: newRookFile },
-          //   hasMoved: true,
-          // };
           if (rook && rook.type == "rook") {
             newPieces.delete(coordinateToKey(rookCoords));
             newPieces.set(
@@ -192,20 +166,10 @@ export function useBoard(
         }
 
         // Remove Captured Piece If Exist
-        // if (capturedIndex >= 0) newPieces.splice(capturedIndex, 1);
         if (capturedPiece)
           newPieces.delete(coordinateToKey(capturedPiece.coordinates));
 
         // Moving Actual Piece
-        // const pieceIndex = newPieces.findIndex((p) =>
-        //   sameCoordinates(p.coordinates, fromPosition)
-        // );
-        //* const piece = newPieces.get(coordinateToKey(fromPosition))!;
-        // newPieces[pieceIndex] = {
-        //   ...newPieces[pieceIndex],
-        //   coordinates: toPosition,
-        //   hasMoved: true,
-        // };
         newPieces.delete(coordinateToKey(fromPosition));
         newPieces.set(coordinateToKey(toPosition), {
           ...piece,
