@@ -73,7 +73,7 @@ export default function calculateValidMoves(
       }
 
       // En Passant
-      const enPassant = isLight ? rank === 5 : rank === 3;
+      const enPassant = (isLight && rank === 5) || (!isLight && rank === 4);
       if (enPassant && enPassantTarget) moves.push(enPassantTarget);
 
       break;
