@@ -22,13 +22,15 @@ export interface Piece {
   hasMoved?: boolean; // castling or Pawn first move
 }
 
+export type PromotionOptions = Exclude<PieceType, "king" | "pawn">;
+
 export interface Move {
   from: Coordinates;
   to: Coordinates;
   piece: Piece;
   captured?: Piece;
   castle?: "short" | "long";
-  promotion?: Exclude<PieceType, "king" | "pawn">;
+  promotion?: PromotionOptions;
 }
 
 export type CoordinateKey = `${number},${number}`;
@@ -43,10 +45,12 @@ export interface BoardState {
   status: "playing" | "check" | "checkmate" | "draw" | "stalemate";
   enPassantTarget: Coordinates | undefined;
   castling: boolean | undefined;
+  promotionPending: boolean;
 }
 
 export interface useBoardType {
   board: BoardState;
   selectPiece: (piece: Piece | null) => void;
   movePiece: (toPosition: Coordinates) => void;
+  promote: (promoteTo: PromotionOptions) => void;
 }

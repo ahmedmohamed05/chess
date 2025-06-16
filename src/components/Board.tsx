@@ -1,7 +1,19 @@
-import { useCallback, useEffect, useRef, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import Squares from "./Squares";
 import sameCoordinates from "../utils/check-coordinates";
-import type { BoardState, Coordinates, Piece } from "../types";
+import {
+  type BoardState,
+  type Coordinates,
+  type Piece,
+  type PromotionOptions,
+  type useBoardType,
+} from "../types";
 import validPiece from "../utils/valid-piece";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
 
@@ -13,11 +25,20 @@ export interface BoardProps {
   selectPiece: (piece: Piece | null) => void;
 }
 
-export default function Board({ board, movePiece, selectPiece }: BoardProps) {
+export default function Board({
+  board,
+  movePiece,
+  selectPiece,
+  promote,
+}: useBoardType) {
   const boardRef = useRef<HTMLDivElement>(null);
   const activePieceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const ignoreNextClick = useRef(false);
+
+  const [promotingSquare, setPromotingSquare] = useState<
+    Coordinates | undefined
+  >(undefined);
 
   const getTargetPosition = useCallback((x: number, y: number): Coordinates => {
     const boardRect = boardRef.current!.getBoundingClientRect();
@@ -55,18 +76,27 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
     (e: DomMouseEvent) => {
       if (!activePieceRef.current || !boardRef.current || !isDragging.current)
         return;
+
       const piece = activePieceRef.current;
-      movePiece(getTargetPosition(e.clientX, e.clientY));
+      const targetSquare = getTargetPosition(e.clientX, e.clientY);
+
+      // FIXME: when black promotes the options are showing in the middle of the board not near the square
+      if (board.promotionPending) {
+        setPromotingSquare(targetSquare);
+      }
+      movePiece(targetSquare);
+
       // Reset
       piece.style.position = "static";
       activePieceRef.current = null;
       isDragging.current = false;
       ignoreNextClick.current = true; // No Piece Selected
     },
-    [movePiece, getTargetPosition]
+    [movePiece, getTargetPosition, board.promotionPending]
   );
 
   const grabPieceHandler = (e: MouseEvent<HTMLDivElement>) => {
+    if (board.promotionPending) return;
     const target = e.target as HTMLDivElement;
 
     // Tile doesn't have a piece
@@ -74,9 +104,7 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
 
     const file = Number(target.dataset.file);
     const rank = Number(target.dataset.rank);
-    // const pieceIndex = board.pieces.findIndex((p) =>
-    //   sameCoordinates(p.coordinates, { file, rank })
-    // );
+
     const piece = board.pieces.get(coordinateToKey({ rank, file }));
 
     if (!piece) return;
@@ -97,6 +125,7 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
       ignoreNextClick.current = false;
       return;
     }
+
     if (!boardRef.current) return;
 
     const clickedPosition: Coordinates = getTargetPosition(
@@ -111,10 +140,24 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
     ) {
       movePiece(clickedPosition);
       return;
-    } else {
-      selectPiece(null); // Deselecting a piece when clicking empty square
     }
+
+    selectPiece(null); // Deselecting a piece when clicking empty square
   };
+
+  const handlePromotion = (type: PromotionOptions) => {
+    setPromotingSquare(undefined);
+    promote(type);
+  };
+
+  // Show Promoting Options When PromotingPending or moves history changes
+  useEffect(() => {
+    if (board.promotionPending) {
+      const lastMoveIndex = board.history.length - 1;
+      const lastMove = board.history[lastMoveIndex];
+      setPromotingSquare(lastMove.to);
+    }
+  }, [board.promotionPending, board.history]);
 
   // Setup and cleanup event listeners
   useEffect(() => {
@@ -132,6 +175,7 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
     };
   }, [dragPieceHandler, dropPieceHandler]);
 
+  // TODO: add touch events for mobiles
   return (
     <div
       className="board"
@@ -140,7 +184,12 @@ export default function Board({ board, movePiece, selectPiece }: BoardProps) {
       onClick={handleBoardClick}
     >
       <div className="squares">
-        <Squares highlight={board.moves} pieces={board.pieces} />
+        <Squares
+          promotion={promotingSquare}
+          promoteHandler={handlePromotion}
+          highlight={board.moves}
+          pieces={board.pieces}
+        />
       </div>
     </div>
   );

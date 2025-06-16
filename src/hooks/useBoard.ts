@@ -4,6 +4,7 @@ import type {
   Coordinates,
   Move,
   Piece,
+  PromotionOptions,
   useBoardType,
 } from "../types";
 import { INIT_BOARD_STATE } from "../constants";
@@ -73,13 +74,11 @@ export function useBoard(
           piece,
           from: fromPosition,
           to: toPosition,
-          // captured: capturedIndex >= 0 ? newPieces[capturedIndex] : undefined,
           captured: capturedPiece,
         };
 
         // Special Moves (En Passant, Castling and Promotion)
 
-        // TODO: Test if he missed the first en passant
         // Setting En Passant Target
         const enPassantTarget =
           piece.type === "pawn" &&
@@ -145,6 +144,10 @@ export function useBoard(
         if (capturedPiece)
           newPieces.delete(coordinateToKey(capturedPiece.coordinates));
 
+        const isPromotion =
+          piece.type === "pawn" &&
+          (toPosition.rank === 1 || toPosition.rank === 8);
+
         // Moving Actual Piece
         newPieces.delete(coordinateToKey(fromPosition));
         newPieces.set(coordinateToKey(toPosition), {
@@ -162,15 +165,55 @@ export function useBoard(
           selectedPiece: null,
           status: "playing",
           enPassantTarget,
+          promotionPending: isPromotion,
         };
       });
     },
     [board.selectedPiece, validMoves]
   );
 
+  const promote = useCallback(
+    (promoteTo: PromotionOptions) => {
+      if (!board.promotionPending) return;
+      if (board.history.length === 0) return;
+
+      const lastMove = board.history.pop()!; // we check the array is not empty
+      const pawn = lastMove.piece;
+      if (pawn.type !== "pawn") return;
+
+      setBoard((prev) => {
+        const newPieces = new Map(prev.pieces);
+
+        // Overwrite The Pawn From The Board
+        newPieces.set(coordinateToKey(lastMove.to), {
+          ...pawn,
+          coordinates: lastMove.to,
+          type: promoteTo,
+        });
+
+        const move: Move = {
+          ...lastMove,
+          promotion: promoteTo,
+        };
+
+        return {
+          ...prev,
+          pieces: newPieces,
+          moves: [],
+          history: [...prev.history, move],
+          selectedPiece: null,
+          status: "playing",
+          promotionPending: false,
+        };
+      });
+    },
+    [board.promotionPending, board.history]
+  );
+
   return {
     board: { ...board, moves: validMoves }, // Need to re-reference moves array to apply highlight on it
     selectPiece,
     movePiece,
+    promote,
   };
 }

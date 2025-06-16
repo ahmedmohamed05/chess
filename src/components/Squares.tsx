@@ -1,5 +1,5 @@
 import { FILES, RANKS } from "../constants";
-import type { Coordinates, PiecesMap } from "../types";
+import type { Coordinates, PiecesMap, PromotionOptions } from "../types";
 import sameCoordinates from "../utils/check-coordinates";
 import getPieceIcon from "../utils/get-piece-icon";
 import getColor from "../utils/get-square-color";
@@ -10,9 +10,16 @@ import Square from "./Square";
 export interface SquaresProps {
   pieces: PiecesMap;
   highlight: Coordinates[];
+  promotion?: Coordinates;
+  promoteHandler: (promoteTo: PromotionOptions) => void;
 }
 
-export default function Squares({ pieces, highlight }: SquaresProps) {
+export default function Squares({
+  pieces,
+  highlight,
+  promotion,
+  promoteHandler,
+}: SquaresProps) {
   const squares = [];
 
   for (let i = RANKS.length - 1; i >= 0; i--) {
@@ -24,17 +31,16 @@ export default function Squares({ pieces, highlight }: SquaresProps) {
       let icon = undefined;
       let highlighted = false;
 
-      // Render the icons
-      // pieces.forEach((p) => {
-      //   if (sameCoordinates({ rank, file }, p.coordinates))
-      //     icon = getPieceIcon(p.type, p.color);
-      // });
       const isIcon = pieces.get(coordinateToKey({ rank, file }));
       if (isIcon) icon = getPieceIcon(isIcon.type, isIcon.color);
 
       highlight.forEach((coordinates) => {
         if (sameCoordinates({ rank, file }, coordinates)) highlighted = true;
       });
+
+      let showPromotionOptions = false;
+      if (promotion)
+        showPromotionOptions = sameCoordinates({ rank, file }, promotion);
 
       squares.push(
         <div
@@ -43,7 +49,14 @@ export default function Squares({ pieces, highlight }: SquaresProps) {
           data-letter={getFileLetter(file)}
           key={i + "-" + j}
         >
-          <Square icon={icon} color={color} rank={rank} file={file} />
+          <Square
+            icon={icon}
+            color={color}
+            rank={rank}
+            file={file}
+            showPromotionOptions={showPromotionOptions}
+            promoteHandler={promoteHandler}
+          />
           {highlighted && !icon && (
             <div className="absolute w-4 aspect-square rounded-full bg-gray-500/60"></div>
           )}

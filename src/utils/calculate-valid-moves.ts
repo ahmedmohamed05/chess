@@ -40,26 +40,18 @@ export default function calculateValidMoves(
       // No need to validate coordinates
       if (!pieces.has(coordinateToKey(frontSquare))) moves.push(frontSquare);
 
-      // TODO: refactor this to a single function for normal capturing
-      // Check for capturing left
-      {
-        const frontLeft: Coordinates = {
-          file: file - 1,
+      const pawnsCapturingHelper = (direction: "left" | "right") => {
+        const square: Coordinates = {
           rank: isLight ? rank + 1 : rank - 1,
+          file: direction === "left" ? file - 1 : file + 1,
         };
-        const ret = pieces.get(coordinateToKey(frontLeft));
-        if (ret && ret.color !== piece.color) moves.push(frontLeft);
-      }
+        const ret = pieces.get(coordinateToKey(square));
+        if (ret && ret.color !== piece.color) moves.push(square);
+      };
 
-      // Check for capturing right
-      {
-        const frontRight: Coordinates = {
-          file: file + 1,
-          rank: isLight ? rank + 1 : rank - 1,
-        };
-        const ret = pieces.get(coordinateToKey(frontRight));
-        if (ret && ret.color !== piece.color) moves.push(frontRight);
-      }
+      // Check for capturing left
+      pawnsCapturingHelper("left");
+      pawnsCapturingHelper("right");
 
       // First Move, Two squares ahead
       if (!piece.hasMoved) {
