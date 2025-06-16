@@ -4,6 +4,7 @@ import isValidCoordinates from "./coordinates-range";
 import { coordinateToKey } from "./key-coordinate-swap";
 import getAllPossibleMoves from "./possible-moves";
 
+// TODO: start searching coordinates from the square not checking all the possible move of a piece for faster search
 export default function pieceCanSee(
   pieces: PiecesMap,
   piece: Piece,
@@ -64,8 +65,8 @@ export default function pieceCanSee(
       const antiDiagonal = (direction: "up" | "down") => {
         for (let offset = 1; offset < 8; offset++) {
           const coords: Coordinates = {
-            rank: direction === "up" ? rank + 1 : rank - 1,
-            file: direction === "up" ? file + 1 : file - 1,
+            rank: direction === "up" ? rank + offset : rank - offset,
+            file: direction === "up" ? file + offset : file - offset,
           };
           if (!isValidCoordinates(coords)) return false;
           if (pieces.has(coordinateToKey(coords))) return false;
