@@ -97,6 +97,17 @@ for (const file of FILES) {
   }
 }
 
+INIT_POSITION.set(coordinateToKey({ rank: 2, file: 5 }), {
+  type: "pawn",
+  color: "dark",
+  coordinates: { rank: 2, file: 5 },
+});
+INIT_POSITION.set(coordinateToKey({ rank: 2, file: 6 }), {
+  type: "pawn",
+  color: "dark",
+  coordinates: { rank: 2, file: 6 },
+});
+
 export const INIT_BOARD_STATE: BoardState = {
   pieces: INIT_POSITION,
   selectedPiece: null,
@@ -107,17 +118,3 @@ export const INIT_BOARD_STATE: BoardState = {
   castling: false,
   enPassantTarget: undefined,
 };
-
-export const LIGHT_CASTLING_SQUARES = [
-  { rank: 1, file: 6 },
-  { rank: 1, file: 7 },
-  { rank: 1, file: 3 },
-  { rank: 1, file: 4 },
-];
-
-export const DARK_CASTLING_SQUARES = [
-  { rank: 8, file: 6 },
-  { rank: 8, file: 7 },
-  { rank: 8, file: 3 },
-  { rank: 8, file: 4 },
-];

@@ -4,7 +4,6 @@ import type {
   Coordinates,
   Move,
   Piece,
-  PiecesMap,
   useBoardType,
 } from "../types";
 import { INIT_BOARD_STATE } from "../constants";
@@ -26,32 +25,6 @@ export function useBoard(
     const enPassantTarget = board.enPassantTarget;
 
     const moves = calculateValidMoves(pieces, piece, turn, enPassantTarget);
-
-    if (piece.type !== "king") return moves;
-    if (piece.hasMoved) return moves;
-
-    const opponentPieces: PiecesMap = new Map();
-    for (const [key, piece] of pieces) {
-      if (piece.color !== turn) opponentPieces.set(key, piece);
-    }
-
-    // TODO: Fix pieceCanSee and re-implement this
-    // TODO: Fix it's not removing the moves
-    // Remove the move if can't castle
-    // const castlingSquares = getCastlingSquares(turn);
-    // for (const piece of opponentPieces) {
-    //   for (const square of castlingSquares) {
-    //     if (pieceCanSee(piece, square)) {
-    //       const moveIndex = moves.findIndex((move) =>
-    //         sameCoordinates(move, square)
-    //       );
-    //       if (moveIndex >= 0) {
-    //         console.log(38);
-    //       }
-    //     }
-    //   }
-    // }
-
     return moves;
   }, [board.pieces, board.selectedPiece, board.turn, board.enPassantTarget]);
 
@@ -80,10 +53,9 @@ export function useBoard(
       );
       if (!isValidMove) return;
 
-      if (board.status === "check" && board.selectedPiece.type !== "king")
-        return;
-
       // TODO: blocking check with other pieces
+      // if (board.status === "check" && board.selectedPiece.type !== "king")
+      //   return;
 
       // TODO: Discover check
 
@@ -193,7 +165,7 @@ export function useBoard(
         };
       });
     },
-    [board.selectedPiece, validMoves, board.status]
+    [board.selectedPiece, validMoves]
   );
 
   return {

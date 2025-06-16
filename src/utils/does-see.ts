@@ -19,7 +19,6 @@ export default function pieceCanSee(
             rank: direction == "up" ? rank + amount : rank - amount,
             file,
           };
-          console.log(coords);
           if (!isValidCoordinates(coords)) return false;
           if (pieces.has(coordinateToKey(coords))) return false;
           if (sameCoordinates(coords, targetSquare)) return true;

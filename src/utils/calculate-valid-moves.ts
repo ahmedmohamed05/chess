@@ -1,5 +1,7 @@
 import type { Coordinates, Piece, PieceColor, PiecesMap } from "../types";
 import isValidCoordinates from "./coordinates-range";
+import pieceCanSee from "./does-see";
+import getCastlingSquares from "./get-castling-squares";
 import { coordinateToKey } from "./key-coordinate-swap";
 import getAllPossibleMoves from "./possible-moves";
 
@@ -8,7 +10,8 @@ export default function calculateValidMoves(
   pieces: PiecesMap,
   piece: Piece,
   turn: PieceColor,
-  enPassantTarget?: Coordinates
+  enPassantTarget?: Coordinates,
+  isCheck?: boolean
 ): Coordinates[] {
   if (turn !== piece.color) return [];
 
@@ -84,23 +87,6 @@ export default function calculateValidMoves(
       moves = getAllPossibleMoves("knight", piece.coordinates).filter((move) =>
         validMove(move)
       );
-
-      // const opponentPieces = pieces.filter((p) => p.color !== turn);
-      const opponentPieces: PiecesMap = new Map();
-      for (const [key, piece] of pieces) {
-        if (piece.color !== turn) opponentPieces.set(key, piece);
-      }
-      // TODO: Remove invalid moves here or in the useBoard.ts
-
-      // const squares = getCastlingSquares(turn);
-
-      // const invalidCastlingSquares = squares.filter((square) => {
-      //   if (opponentPieces.some((p) => pieceCanSee(p, square))) return square;
-      // });
-
-      // if (invalidCastlingSquares) {
-      // // TODO: remove them
-      // }
       break;
     }
 
@@ -219,23 +205,53 @@ export default function calculateValidMoves(
       // If The King Moved
       if (piece.hasMoved) break;
 
-      // TODO: Check If There Is No Checks In The Way
+      if (isCheck) break;
+
+      const opponentPieces: PiecesMap = new Map();
+      for (const [key, piece] of pieces) {
+        if (piece.color !== turn) opponentPieces.set(key, piece);
+      }
 
       // Short Castling O-O
       // Looking For Pieces In The Way
-      const hRook = pieces.get(coordinateToKey({ rank, file: 8 }));
-      const lightBishop = pieces.has(coordinateToKey({ rank, file: 6 }));
-      const rightKnight = pieces.has(coordinateToKey({ rank, file: 7 }));
-      if (!lightBishop && !rightKnight && hRook && !hRook.hasMoved)
-        moves.push({ rank, file: file + 2 });
+      const shortCastlingSquares = getCastlingSquares(turn).short;
+      let canCastleShort = true;
+      for (const shortCastlingSquare of shortCastlingSquares) {
+        for (const [, piece] of opponentPieces) {
+          if (pieceCanSee(opponentPieces, piece, shortCastlingSquare)) {
+            canCastleShort = false;
+            break;
+          }
+        }
+      }
+      if (canCastleShort) {
+        const hRook = pieces.get(coordinateToKey({ rank, file: 8 }));
+        const lightBishop = pieces.has(coordinateToKey({ rank, file: 6 }));
+        const rightKnight = pieces.has(coordinateToKey({ rank, file: 7 }));
+        if (!lightBishop && !rightKnight && hRook && !hRook.hasMoved)
+          moves.push({ rank, file: file + 2 });
+      }
 
       // Long Castling O-O-O
-      const aRook = pieces.get(coordinateToKey({ rank, file: 1 }));
-      const queen = pieces.has(coordinateToKey({ rank, file: 4 }));
-      const darkBishop = pieces.has(coordinateToKey({ rank, file: 3 }));
-      const leftKnight = pieces.has(coordinateToKey({ rank, file: 2 }));
-      if (!queen && !darkBishop && !leftKnight && aRook && !aRook.hasMoved)
-        moves.push({ rank, file: file - 2 });
+      // Looking For Pieces In The Way
+      const longCastlingSquares = getCastlingSquares(turn).long;
+      let canCastleLong = true;
+      for (const longCastlingSquare of longCastlingSquares) {
+        for (const [, piece] of opponentPieces) {
+          if (pieceCanSee(opponentPieces, piece, longCastlingSquare)) {
+            canCastleLong = false;
+            break;
+          }
+        }
+      }
+      if (canCastleLong) {
+        const aRook = pieces.get(coordinateToKey({ rank, file: 1 }));
+        const queen = pieces.has(coordinateToKey({ rank, file: 4 }));
+        const darkBishop = pieces.has(coordinateToKey({ rank, file: 3 }));
+        const leftKnight = pieces.has(coordinateToKey({ rank, file: 2 }));
+        if (!queen && !darkBishop && !leftKnight && aRook && !aRook.hasMoved)
+          moves.push({ rank, file: file - 2 });
+      }
     }
   }
 
