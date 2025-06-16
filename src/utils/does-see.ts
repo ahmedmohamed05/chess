@@ -1,126 +1,140 @@
 import type { Coordinates, Piece, PiecesMap } from "../types";
 import sameCoordinates from "./check-coordinates";
 import isValidCoordinates from "./coordinates-range";
+import { coordinateToKey } from "./key-coordinate-swap";
 import getAllPossibleMoves from "./possible-moves";
 
 export default function pieceCanSee(
   pieces: PiecesMap,
   piece: Piece,
-  square: Coordinates
+  targetSquare: Coordinates
 ): boolean {
-  const { rank, file } = square;
-  const lastRank = 8 - rank;
-  const lastFile = 8 - file;
+  const { rank, file } = piece.coordinates;
 
   switch (piece.type) {
-    // TODO: Refactor to a single function
     case "rook": {
-      // Check only 7 more because we are on a square 1 + 7 == 8 which is last square
-      // Check Up Ranks
-      for (let i = 1; i <= lastRank; i++) {
-        const coo = { ...square, rank: rank + i };
-        if (!isValidCoordinates(coo)) return false; // No More Valid Squares
-        if (sameCoordinates(piece.coordinates, coo)) return true;
-      }
+      const checkRanks = (direction: "up" | "down") => {
+        for (let amount = 1; amount < 8; amount++) {
+          const coords = {
+            rank: direction == "up" ? rank + amount : rank - amount,
+            file,
+          };
+          console.log(coords);
+          if (!isValidCoordinates(coords)) return false;
+          if (pieces.has(coordinateToKey(coords))) return false;
+          if (sameCoordinates(coords, targetSquare)) return true;
+        }
+        return false;
+      };
 
-      // Check Down Ranks
-      for (let i = 1; i <= lastRank; i++) {
-        const coo = { ...square, rank: rank - i };
-        if (!isValidCoordinates(coo)) return false; // No More Valid Squares
-        if (sameCoordinates(piece.coordinates, coo)) return true;
-      }
+      const checkFiles = (direction: "left" | "right") => {
+        for (let amount = 1; amount < 8; amount++) {
+          const coords = {
+            rank,
+            file: direction == "right" ? file + amount : file - amount,
+          };
+          if (!isValidCoordinates(coords)) return false;
+          if (pieces.has(coordinateToKey(coords))) return false;
+          if (sameCoordinates(coords, targetSquare)) return true;
+        }
+        return false;
+      };
 
-      // Check Right Files
-      for (let i = 0; i <= lastFile; i++) {
-        const coo = { ...square, file: file + i };
-        if (!isValidCoordinates(coo)) return false; // No More Valid Squares
-        if (sameCoordinates(piece.coordinates, coo)) return true;
-      }
-
-      // Check Left Files
-      for (let i = 0; i <= lastFile; i++) {
-        const coo = { ...square, file: file - i };
-        if (!isValidCoordinates(coo)) return false; // No More Valid Squares
-        if (sameCoordinates(piece.coordinates, coo)) return true;
-      }
-      return false;
+      return (
+        checkRanks("up") ||
+        checkRanks("down") ||
+        checkFiles("left") ||
+        checkFiles("right")
+      );
     }
 
     case "bishop": {
-      const mainDiagonal = (isUp: boolean) => {
-        for (let i = 1; i <= 8 - rank; i++) {
-          const move: Coordinates = {
-            rank: rank + (isUp ? i : -i),
-            file: file - (isUp ? i : -i),
+      const mainDiagonal = (direction: "up" | "down"): boolean => {
+        for (let offset = 1; offset < 8; offset++) {
+          const coords: Coordinates = {
+            rank: direction === "up" ? rank + offset : rank - offset,
+            file: direction === "up" ? file - offset : file + offset,
           };
-          if (!isValidCoordinates(move)) return false;
-          if (sameCoordinates(move, piece.coordinates)) return true;
+          if (!isValidCoordinates(coords)) return false;
+          if (pieces.has(coordinateToKey(coords))) return false;
+          if (sameCoordinates(coords, targetSquare)) return true;
         }
-
-        return false;
-      };
-      const antiDiagonal = (isUp: boolean) => {
-        for (let i = 1; i <= lastRank && i <= lastFile; i++) {
-          const move: Coordinates = {
-            rank: rank + (isUp ? 1 : -1),
-            file: file + (isUp ? 1 : -1),
-          };
-          if (!isValidCoordinates(move)) return false;
-          if (sameCoordinates(move, piece.coordinates)) return true;
-        }
-
         return false;
       };
 
-      const main = mainDiagonal(true) || mainDiagonal(false);
-      const anti = antiDiagonal(true) || antiDiagonal(false);
+      const antiDiagonal = (direction: "up" | "down") => {
+        for (let offset = 1; offset < 8; offset++) {
+          const coords: Coordinates = {
+            rank: direction === "up" ? rank + 1 : rank - 1,
+            file: direction === "up" ? file + 1 : file - 1,
+          };
+          if (!isValidCoordinates(coords)) return false;
+          if (pieces.has(coordinateToKey(coords))) return false;
+          if (sameCoordinates(coords, targetSquare)) return true;
+        }
+        return false;
+      };
+
+      const main = mainDiagonal("up") || mainDiagonal("down");
+      const anti = antiDiagonal("up") || antiDiagonal("down");
       return main || anti;
     }
     // It's just a bishop + rook, we can use recursion
     case "queen": {
-      const bishop = pieceCanSee({ ...piece, type: "bishop" }, square);
-      const rook = pieceCanSee({ ...piece, type: "rook" }, square);
+      const bishop = pieceCanSee(
+        pieces,
+        { ...piece, type: "bishop" },
+        targetSquare
+      );
+      const rook = pieceCanSee(
+        pieces,
+        { ...piece, type: "rook" },
+        targetSquare
+      );
       return bishop || rook;
     }
+
+    case "knight": {
+      // Get All Possible Moves
+      const allCords = getAllPossibleMoves("knight", piece.coordinates).filter(
+        (move) => isValidCoordinates(move)
+      );
+      for (const coords of allCords) {
+        if (sameCoordinates(coords, targetSquare)) return true;
+      }
+
+      return false;
+    }
+
+    case "king": {
+      // Get All Possible Moves
+      const allCoords = getAllPossibleMoves("king", piece.coordinates).filter(
+        (move) => isValidCoordinates(move)
+      );
+      for (const coords of allCoords) {
+        if (sameCoordinates(coords, targetSquare)) return true;
+      }
+
+      return false;
+    }
+
     case "pawn": {
       // light pawns see's forwards move, dark see backwards
       const newRank = rank + (piece.color === "light" ? 1 : -1);
 
-      const upLeft: Coordinates = { rank: newRank, file: file - 1 };
+      const leftCapturing: Coordinates = { rank: newRank, file: file - 1 };
       if (
-        isValidCoordinates(upLeft) &&
-        sameCoordinates(upLeft, piece.coordinates)
+        isValidCoordinates(leftCapturing) &&
+        sameCoordinates(leftCapturing, targetSquare)
       )
         return true;
 
-      const upRight: Coordinates = { rank: newRank, file: file + 1 };
+      const rightCapturing: Coordinates = { rank: newRank, file: file + 1 };
       if (
-        isValidCoordinates(upRight) &&
-        sameCoordinates(upRight, piece.coordinates)
+        isValidCoordinates(rightCapturing) &&
+        sameCoordinates(rightCapturing, targetSquare)
       )
         return true;
-
-      return false;
-    }
-    case "knight": {
-      // Get All Possible Moves
-      const allMoves = getAllPossibleMoves("knight", piece.coordinates).filter(
-        (move) => isValidCoordinates(move)
-      );
-      for (const move of allMoves) {
-        if (sameCoordinates(piece.coordinates, move)) return true;
-      }
-
-      return false;
-    }
-    case "king": {
-      // Get All Possible Moves
-      const allMoves = getAllPossibleMoves("king", piece.coordinates).filter(
-        (move) => isValidCoordinates(move)
-      );
-      for (const move of allMoves) {
-        if (sameCoordinates(piece.coordinates, move)) return true;
-      }
 
       return false;
     }
