@@ -195,6 +195,8 @@ export default function Board({
         piece,
         element,
       };
+      isDragging.current = true;
+      grabPiece({ x: touch.clientX, y: touch.clientY }, element);
     } else {
       const tappedTile = getTargetPosition(touch.clientX, touch.clientY);
 
@@ -215,29 +217,12 @@ export default function Board({
       const touch = e.touches[0];
       if (!touch) return;
 
-      // Calculate movement distance
-      const { clientX: x, clientY: y } = touch;
-      const dx = Math.abs(x - movingRef.current.position.x);
-      const dy = Math.abs(y - movingRef.current.position.y);
-
-      // Start dragging if movement exceeds 10xp and the user not already dragging
-      if (dx > 10 || (dy > 10 && !isDragging.current)) {
-        const { piece, element } = movingRef.current;
-
-        selectPiece(piece);
-        isDragging.current = true;
-        element.style.position = "absolute";
-        element.style.scale = "1.5";
-        element.style.left = x - element.offsetWidth / 2 + "px";
-        element.style.top = y - element.offsetHeight / 2 + "px";
-      }
-
       // Continue dragging if already started
       if (isDragging.current) {
         dragHandler({ x: touch.clientX, y: touch.clientY });
       }
     },
-    [dragHandler, selectPiece]
+    [dragHandler]
   );
 
   const touchEndHandler = (e: TouchEvent<HTMLDivElement>) => {
@@ -305,10 +290,6 @@ export default function Board({
     if (length === 0) return undefined;
     return board.history[length - 1];
   }, [board.history]);
-
-  useEffect(() => {
-    console.log(movingRef);
-  }, [movingRef]);
 
   return (
     <div
