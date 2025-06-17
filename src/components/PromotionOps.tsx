@@ -10,7 +10,7 @@ export default function PromotionOps({
   color,
   promoteHandler,
 }: PromotionOpsProps) {
-  const opts: PromotionOptions[] = ["bishop", "knight", "queen", "rook"];
+  const opts: PromotionOptions[] = ["queen", "rook", "bishop", "knight"];
   const out = [];
   for (const op of opts) {
     out.push(

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type MouseEvent,
@@ -158,6 +159,13 @@ export default function Board({
     }
   }, [board.promotionPending, board.history]);
 
+  // Last Move Square
+  const lastMove = useMemo(() => {
+    const length = board.history.length;
+    if (length === 0) return undefined;
+    return board.history[length - 1];
+  }, [board.history]);
+
   // Setup and cleanup event listeners
   useEffect(() => {
     const moveHandler = (e: DomMouseEvent) => dragPieceHandler(e);
@@ -187,6 +195,7 @@ export default function Board({
           promotion={promotingSquare}
           promoteHandler={handlePromotion}
           highlight={board.moves}
+          lastMove={lastMove}
           pieces={board.pieces}
         />
       </div>

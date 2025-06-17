@@ -1,11 +1,9 @@
-import { useEffect } from "react";
 import "./app.css";
 import Board from "./components/Board";
 import { useBoard } from "./hooks/useBoard";
 
 export default function App() {
   const { board, selectPiece, movePiece, promote } = useBoard();
-  useEffect(() => console.log(board.history), [board.history]);
 
   return (
     <main className="relative h-dvh flex justify-center items-center gap-5 bg-gray-800">

@@ -1,5 +1,5 @@
 import { FILES, RANKS } from "../constants";
-import type { Coordinates, PiecesMap, PromotionOptions } from "../types";
+import type { Coordinates, Move, PiecesMap, PromotionOptions } from "../types";
 import sameCoordinates from "../utils/check-coordinates";
 import getPieceIcon from "../utils/get-piece-icon";
 import getColor from "../utils/get-square-color";
@@ -10,6 +10,7 @@ import Square from "./Square";
 export interface SquaresProps {
   pieces: PiecesMap;
   highlight: Coordinates[];
+  lastMove?: Move;
   promotion?: Coordinates;
   promoteHandler: (promoteTo: PromotionOptions) => void;
 }
@@ -17,6 +18,7 @@ export interface SquaresProps {
 export default function Squares({
   pieces,
   highlight,
+  lastMove,
   promotion,
   promoteHandler,
 }: SquaresProps) {
@@ -42,12 +44,23 @@ export default function Squares({
       if (promotion)
         showPromotionOptions = sameCoordinates({ rank, file }, promotion);
 
+      // Highlight from and to squares
+      const fromBorderColor =
+        lastMove && sameCoordinates({ rank, file }, lastMove.from) && "#c9c9c9";
+      const toBorderColor =
+        lastMove && sameCoordinates({ rank, file }, lastMove.to) && "#fff";
+      const borderColor = fromBorderColor || toBorderColor;
+      const border = borderColor
+        ? { border: `solid   3px ${borderColor}` }
+        : { border: "none" };
+
       squares.push(
         <div
           className="tile flex justify-center items-center"
           data-rank={rank}
           data-letter={getFileLetter(file)}
           key={i + "-" + j}
+          style={border}
         >
           <Square
             icon={icon}
