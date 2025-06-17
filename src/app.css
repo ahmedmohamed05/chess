@@ -26,6 +26,23 @@
   }
 }
 
+html,
+body {
+  overscroll-behavior: none; /* Disable pull-to-refresh */
+  touch-action: manipulation; /* Improve touch responsiveness */
+  height: 100%;
+  overflow: hidden;
+}
+
+.board {
+  touch-action: none; /* Disable browser touch actions */
+  user-select: none; /* Prevent text selection */
+}
+
+.piece {
+  touch-action: none; /* Disable browser touch actions on pieces */
+}
+
 .board .squares {
   display: grid;
   grid-template-columns: repeat(8, var(--square-size));
@@ -98,4 +115,14 @@
 .promoting-square span img {
   width: 100%;
   aspect-ratio: 1/1;
+}
+
+.piece.dragging {
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.5));
+  z-index: 100;
+}
+
+.piece {
+  will-change: transform;
+  transition: transform 0.1s ease;
 }

@@ -71,9 +71,8 @@ export default function Board({
 
     element.style.left = left + "px";
     element.style.top = top + "px";
-    element.style.scale = "1.5";
+    element.style.scale = "1.2";
   }, []);
-
   const dropHandler = useCallback(
     ({ x, y }: positionType) => {
       if (!movingRef.current || !boardRef.current || !isDragging.current)
@@ -88,6 +87,7 @@ export default function Board({
       movePiece(targetSquare);
 
       // Reset
+      element.classList.remove("dragging");
       element.style.position = "static";
       element.style.scale = "1";
       isDragging.current = false;
@@ -112,7 +112,8 @@ export default function Board({
       position: { x, y },
     };
 
-    target.style.scale = "1.5";
+    target.classList.add("dragging");
+    target.style.scale = "1.2";
     target.style.position = "absolute";
     target.style.left = x - target.offsetWidth / 2 + "px";
     target.style.top = y - target.offsetHeight / 2 + "px";
@@ -177,6 +178,9 @@ export default function Board({
 
   // Title: Touch event handlers
   const touchStartHandler = (e: TouchEvent<HTMLDivElement>) => {
+    // To Prevent Browser Gestures For Refreshing
+    e.preventDefault();
+
     // Wait Until Select Promotion Option
     if (board.promotionPending) return;
 
@@ -210,6 +214,8 @@ export default function Board({
   };
   const touchMoveHandler = useCallback(
     (e: TouchEvent<HTMLDivElement>) => {
+      // To Avoid Scrolling
+      e.preventDefault();
       if (e.cancelable) e.preventDefault();
 
       if (!movingRef.current) return;

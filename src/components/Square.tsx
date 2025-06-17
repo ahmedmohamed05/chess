@@ -24,7 +24,7 @@ export default function Square({
       data-piece={icon !== undefined}
       data-rank={rank}
       data-file={file}
-      className="square relative bg-no-repeat bg-center hover:cursor-grab active:cursor-grabbing"
+      className="piece square relative bg-no-repeat bg-center hover:cursor-grab active:cursor-grabbing"
       style={
         icon
           ? {
