@@ -38,7 +38,10 @@ export default function Square({
     >
       {showPromotionOptions && (
         <div className="promoting-square absolute bg-slate-500 p-1.5 left-1/2 top-1/2 -translate-1/2 z-50">
-          <PromotionOps color={color} promoteHandler={promoteHandler} />
+          <PromotionOps
+            color={rank === 8 ? "light" : "dark"}
+            promoteHandler={promoteHandler}
+          />
         </div>
       )}
     </div>

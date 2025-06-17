@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import { type MouseEvent } from "react";
 import type { PieceColor, PromotionOptions } from "../types";
 import getPieceIcon from "../utils/get-piece-icon";
 

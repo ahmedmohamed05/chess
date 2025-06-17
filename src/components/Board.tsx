@@ -80,7 +80,6 @@ export default function Board({
       const piece = activePieceRef.current;
       const targetSquare = getTargetPosition(e.clientX, e.clientY);
 
-      // FIXME: when black promotes the options are showing in the middle of the board not near the square
       if (board.promotionPending) {
         setPromotingSquare(targetSquare);
       }
