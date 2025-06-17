@@ -1,3 +1,4 @@
+// Board.tsx
 import {
   useCallback,
   useEffect,
@@ -5,11 +6,12 @@ import {
   useRef,
   useState,
   type MouseEvent,
+  type TouchEvent,
 } from "react";
 import Squares from "./Squares";
 import sameCoordinates from "../utils/check-coordinates";
 import {
-  type BoardState,
+  // type BoardState,
   type Coordinates,
   type Piece,
   type PromotionOptions,
@@ -19,12 +21,8 @@ import validPiece from "../utils/valid-piece";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
 
 type DomMouseEvent = globalThis.MouseEvent;
-
-export interface BoardProps {
-  board: BoardState;
-  movePiece: (to: Coordinates) => void;
-  selectPiece: (piece: Piece | null) => void;
-}
+type DomTouchEvent = globalThis.TouchEvent;
+type positionType = { x: number; y: number };
 
 export default function Board({
   board,
@@ -36,6 +34,7 @@ export default function Board({
   const activePieceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const ignoreNextClick = useRef(false);
+  const touchStartPosition = useRef<positionType | null>(null);
 
   const [promotingSquare, setPromotingSquare] = useState<
     Coordinates | undefined
@@ -50,10 +49,10 @@ export default function Board({
     return { file, rank };
   }, []);
 
-  const dragPieceHandler = useCallback((e: DomMouseEvent) => {
+  // Shared drag handler for both mouse and touch
+  const dragHandler = useCallback(({ x, y }: positionType) => {
     if (!activePieceRef.current || !isDragging.current) return;
 
-    const { clientX: x, clientY: y } = e;
     const piece = activePieceRef.current;
     const pieceWidth = piece.offsetWidth;
     const pieceHeight = piece.offsetHeight;
@@ -71,15 +70,17 @@ export default function Board({
 
     piece.style.left = left + "px";
     piece.style.top = top + "px";
+    piece.style.scale = "1.5";
   }, []);
 
-  const dropPieceHandler = useCallback(
-    (e: DomMouseEvent) => {
+  // Shared drop handler for both mouse and touch
+  const dropHandler = useCallback(
+    ({ x, y }: positionType) => {
       if (!activePieceRef.current || !boardRef.current || !isDragging.current)
         return;
 
       const piece = activePieceRef.current;
-      const targetSquare = getTargetPosition(e.clientX, e.clientY);
+      const targetSquare = getTargetPosition(x, y);
 
       if (board.promotionPending) {
         setPromotingSquare(targetSquare);
@@ -88,13 +89,69 @@ export default function Board({
 
       // Reset
       piece.style.position = "static";
+      piece.style.scale = "1";
       activePieceRef.current = null;
       isDragging.current = false;
-      ignoreNextClick.current = true; // No Piece Selected
+      ignoreNextClick.current = true;
+      touchStartPosition.current = null;
     },
     [movePiece, getTargetPosition, board.promotionPending]
   );
 
+  // Mouse event handlers
+  const dragPieceHandler = useCallback(
+    (e: DomMouseEvent) => {
+      dragHandler({ x: e.clientX, y: e.clientY });
+    },
+    [dragHandler]
+  );
+  const dropPieceHandler = useCallback(
+    (e: DomMouseEvent) => {
+      dropHandler({ x: e.clientX, y: e.clientY });
+    },
+    [dropHandler]
+  );
+
+  // Touch event handlers
+  const touchDragHandler = useCallback(
+    (e: DomTouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      if (e.touches.length > 0) {
+        dragHandler({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+      }
+    },
+    [dragHandler]
+  );
+  const touchDropHandler = useCallback(
+    (e: DomTouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      if (e.changedTouches.length > 0) {
+        dropHandler({
+          x: e.changedTouches[0].clientX,
+          y: e.changedTouches[0].clientY,
+        });
+      }
+    },
+    [dropHandler]
+  );
+
+  // Shared grab handler for both mouse and touch
+  const grabPiece = (
+    { x, y }: positionType,
+    target: HTMLDivElement,
+    piece: Piece
+  ) => {
+    selectPiece(piece);
+    activePieceRef.current = target;
+    isDragging.current = true;
+
+    target.style.position = "absolute";
+    target.style.left = x - target.offsetWidth / 2 + "px";
+    target.style.top = y - target.offsetHeight / 2 + "px";
+    target.style.scale = "1.5";
+  };
+
+  // Mouse grab handler
   const grabPieceHandler = (e: MouseEvent<HTMLDivElement>) => {
     if (board.promotionPending) return;
     const target = e.target as HTMLDivElement;
@@ -109,17 +166,37 @@ export default function Board({
 
     if (!piece) return;
 
-    selectPiece(piece);
-
-    activePieceRef.current = target;
-    isDragging.current = true;
-
-    const { clientX: x, clientY: y } = e;
-    target.style.position = "absolute";
-    target.style.left = x - target.offsetWidth / 2 + "px";
-    target.style.top = y - target.offsetHeight / 2 + "px";
+    grabPiece({ x: e.clientX, y: e.clientY }, target, piece);
   };
 
+  // Touch grab handler
+  const touchGrabHandler = (e: TouchEvent<HTMLDivElement>) => {
+    if (board.promotionPending) return;
+    const target = e.target as HTMLDivElement;
+
+    if (!validPiece(target)) return;
+
+    const file = Number(target.dataset.file);
+    const rank = Number(target.dataset.rank);
+
+    const piece = board.pieces.get(coordinateToKey({ rank, file }));
+
+    if (!piece) return;
+
+    // Store touch start position for tap detection
+    touchStartPosition.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+
+    grabPiece(
+      { x: e.touches[0].clientX, y: e.touches[0].clientY },
+      target,
+      piece
+    );
+  };
+
+  // Handle board click/tap
   const handleBoardClick = (e: MouseEvent<HTMLDivElement>) => {
     if (ignoreNextClick.current) {
       ignoreNextClick.current = false;
@@ -145,6 +222,39 @@ export default function Board({
     selectPiece(null); // Deselecting a piece when clicking empty square
   };
 
+  // Handle touch end (for taps)
+  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    if (!boardRef.current || !touchStartPosition.current) return;
+
+    // Check if it was a tap (minimal movement)
+    if (e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const dx = Math.abs(touch.clientX - touchStartPosition.current.x);
+      const dy = Math.abs(touch.clientY - touchStartPosition.current.y);
+
+      // Consider it a tap if movement was less than 5px
+      if (dx < 5 && dy < 5) {
+        const tappedPosition: Coordinates = getTargetPosition(
+          touch.clientX,
+          touch.clientY
+        );
+
+        // If we have a selected piece and tapped on a valid move
+        if (
+          board.selectedPiece &&
+          board.moves.some((move) => sameCoordinates(move, tappedPosition))
+        ) {
+          movePiece(tappedPosition);
+          return;
+        }
+
+        selectPiece(null); // Deselecting a piece when tapping empty square
+      }
+    }
+
+    touchStartPosition.current = null;
+  };
+
   const handlePromotion = (type: PromotionOptions) => {
     setPromotingSquare(undefined);
     promote(type);
@@ -168,26 +278,35 @@ export default function Board({
 
   // Setup and cleanup event listeners
   useEffect(() => {
-    const moveHandler = (e: DomMouseEvent) => dragPieceHandler(e);
-    const dropHandler = (e: DomMouseEvent) => dropPieceHandler(e);
+    const mouseMoveHandler = (e: DomMouseEvent) => dragPieceHandler(e);
+    const mouseUpHandler = (e: DomMouseEvent) => dropPieceHandler(e);
+    const touchMoveHandler = (e: DomTouchEvent) => touchDragHandler(e);
+    const touchEndHandler = (e: DomTouchEvent) => touchDropHandler(e);
 
     // Add document-level listeners
-    document.addEventListener("mousemove", moveHandler);
-    document.addEventListener("mouseup", dropHandler);
+    document.addEventListener("mousemove", mouseMoveHandler);
+    document.addEventListener("mouseup", mouseUpHandler);
+    document.addEventListener("touchmove", touchMoveHandler, {
+      passive: false,
+    });
+    document.addEventListener("touchend", touchEndHandler);
 
     return () => {
       // Cleanup document-level listeners
-      document.removeEventListener("mousemove", moveHandler);
-      document.removeEventListener("mouseup", dropHandler);
+      document.removeEventListener("mousemove", mouseMoveHandler);
+      document.removeEventListener("mouseup", mouseUpHandler);
+      document.removeEventListener("touchmove", touchMoveHandler);
+      document.removeEventListener("touchend", touchEndHandler);
     };
-  }, [dragPieceHandler, dropPieceHandler]);
+  }, [dragPieceHandler, dropPieceHandler, touchDragHandler, touchDropHandler]);
 
-  // TODO: add touch events for mobiles
   return (
     <div
       className="board"
       ref={boardRef}
       onMouseDown={grabPieceHandler}
+      onTouchStart={touchGrabHandler}
+      onTouchEnd={handleTouchEnd}
       onClick={handleBoardClick}
     >
       <div className="squares">
