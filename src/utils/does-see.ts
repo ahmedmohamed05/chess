@@ -4,7 +4,7 @@ import isValidCoordinates from "./coordinates-range";
 import { coordinateToKey } from "./key-coordinate-swap";
 import getAllPossibleMoves from "./possible-moves";
 
-// TODO: start searching coordinates from the square not checking all the possible move of a piece for faster search
+// TODO start searching coordinates from the square not checking all the possible move of a piece for faster search
 export default function pieceCanSee(
   pieces: PiecesMap,
   piece: Piece,

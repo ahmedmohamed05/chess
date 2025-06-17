@@ -1,10 +1,30 @@
-check if the piece sees the castling square for the opponent goto(2)
-set canCastle to false
-------------------------------------------------
-check all the other piece if one of them can see the castling square return true
-you must know the color of the king that wants to castle
-------------------------------------------------
-start checking from the square if it can see opponent pieces
-1: check diagonals for bishops queens, king and pawns (must be one square away)
-2: check ranks and files for the rooks and queens and king (king must be one square away)
-3: check for the knights
+Event Listeners Document 
+
+[BoardState Event Handlers]
+  - getTargetPosition: Convert DOM coordinates to actual Piece coordinates
+
+  - dragPiece: takes DOM element position and the element it self to apply the styles and the piece in that element and selecting the piece in the board state
+
+  - dragHandler: Moving a piece
+
+  - dropHandler: Drop a piece based on it's new DOM coordinates
+
+  - handlePromotion: apply the pending promotion
+
+
+[Mouse Events Handlers]
+  - grabPieceHandler: get the coordinates of the clicked tile and calls 'grabPiece'
+
+  - dragPieceHandler: Take MouseEvent parameter and calls dragHandler with it's x and y values
+
+  - dropPieceHandler: Take MouseEvent parameter and calls dropHandler with it's x and y values
+
+  - handleBoardClick: Get the clicked position and get the piece in it or move the selected piece or deselect the selected piece
+
+[Touch Events handler]
+  - touchGrabHandler: get the coordinates of the tapped tile and calls 'grabPiece'
+
+  - handleTouchMove: 
+
+
+  

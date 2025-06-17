@@ -1,4 +1,3 @@
-// Board.tsx
 import {
   useCallback,
   useEffect,
@@ -11,18 +10,23 @@ import {
 import Squares from "./Squares";
 import sameCoordinates from "../utils/check-coordinates";
 import {
-  // type BoardState,
   type Coordinates,
   type Piece,
+  type positionType,
   type PromotionOptions,
   type useBoardType,
 } from "../types";
 import validPiece from "../utils/valid-piece";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
 
-type DomMouseEvent = globalThis.MouseEvent;
-type DomTouchEvent = globalThis.TouchEvent;
-type positionType = { x: number; y: number };
+// type DomMouseEvent = globalThis.MouseEvent;
+// type DomTouchEvent = globalThis.TouchEvent;
+
+interface MovingRef {
+  position: positionType;
+  piece: Piece;
+  element: HTMLDivElement;
+}
 
 export default function Board({
   board,
@@ -31,11 +35,10 @@ export default function Board({
   promote,
 }: useBoardType) {
   const boardRef = useRef<HTMLDivElement>(null);
-  const activePieceRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const ignoreNextClick = useRef(false);
-  const touchStartPosition = useRef<positionType | null>(null);
-
+  // const activePieceRef = useRef<HTMLDivElement>(null);
+  const movingRef = useRef<MovingRef | null>(null);
   const [promotingSquare, setPromotingSquare] = useState<
     Coordinates | undefined
   >(undefined);
@@ -49,13 +52,14 @@ export default function Board({
     return { file, rank };
   }, []);
 
-  // Shared drag handler for both mouse and touch
+  // Title: Board State Shared Handlers
   const dragHandler = useCallback(({ x, y }: positionType) => {
-    if (!activePieceRef.current || !isDragging.current) return;
+    if (!movingRef.current || !isDragging.current) return;
 
-    const piece = activePieceRef.current;
-    const pieceWidth = piece.offsetWidth;
-    const pieceHeight = piece.offsetHeight;
+    // const piece = activePieceRef.current;
+    const element = movingRef.current.element;
+    const pieceWidth = element.offsetWidth;
+    const pieceHeight = element.offsetHeight;
 
     const boardRect = boardRef.current?.getBoundingClientRect();
     if (!boardRect) return;
@@ -68,135 +72,96 @@ export default function Board({
     const left = Math.min(Math.max(x - pieceWidth / 2, minX), maxX);
     const top = Math.min(Math.max(y - pieceHeight / 2, minY), maxY);
 
-    piece.style.left = left + "px";
-    piece.style.top = top + "px";
-    piece.style.scale = "1.5";
+    element.style.left = left + "px";
+    element.style.top = top + "px";
+    element.style.scale = "1.5";
   }, []);
-
-  // Shared drop handler for both mouse and touch
   const dropHandler = useCallback(
     ({ x, y }: positionType) => {
-      if (!activePieceRef.current || !boardRef.current || !isDragging.current)
+      if (!movingRef.current || !boardRef.current || !isDragging.current)
         return;
 
-      const piece = activePieceRef.current;
+      const { element } = movingRef.current;
       const targetSquare = getTargetPosition(x, y);
 
       if (board.promotionPending) {
         setPromotingSquare(targetSquare);
       }
       movePiece(targetSquare);
+      // selectPiece(null);
 
       // Reset
-      piece.style.position = "static";
-      piece.style.scale = "1";
-      activePieceRef.current = null;
+      element.style.position = "static";
+      element.style.scale = "1";
       isDragging.current = false;
       ignoreNextClick.current = true;
-      touchStartPosition.current = null;
+      // touchRef.current = {
+      //   position: null,
+      //   piece: null,
+      // };
+      movingRef.current = null;
     },
     [movePiece, getTargetPosition, board.promotionPending]
   );
+  // TODO Just send the target here
+  const grabPiece = ({ x, y }: positionType, target: HTMLDivElement) => {
+    if (!boardRef.current) return;
 
-  // Mouse event handlers
-  const dragPieceHandler = useCallback(
-    (e: DomMouseEvent) => {
+    const pieceCoords = getTargetPosition(x, y);
+    const piece = board.pieces.get(coordinateToKey(pieceCoords));
+    if (!piece) return;
+
+    selectPiece(piece);
+    isDragging.current = true;
+    // activePieceRef.current = target;
+    // touchRef.current = {
+    //   position: { x, y },
+    //   piece,
+    // };
+    movingRef.current = {
+      element: target,
+      piece,
+      position: { x, y },
+    };
+
+    target.style.scale = "1.5";
+    target.style.position = "absolute";
+    target.style.left = x - target.offsetWidth / 2 + "px";
+    target.style.top = y - target.offsetHeight / 2 + "px";
+  };
+
+  // Title: Mouse event handlers
+  // TODO this and the logic inside 'touchGrabHandler' can be one function
+  const mouseDownHandler = (e: MouseEvent<HTMLDivElement>) => {
+    // Wait Until Select Promotion Option
+    if (board.promotionPending) return;
+
+    const element = e.target as HTMLDivElement;
+
+    // Tile doesn't have a piece
+    if (!validPiece(element)) return;
+
+    const file = Number(element.dataset.file);
+    const rank = Number(element.dataset.rank);
+
+    const piece = board.pieces.get(coordinateToKey({ rank, file }));
+
+    if (!piece) return;
+
+    grabPiece({ x: e.clientX, y: e.clientY }, element);
+  };
+  const mouseMoveHandler = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
       dragHandler({ x: e.clientX, y: e.clientY });
     },
     [dragHandler]
   );
-  const dropPieceHandler = useCallback(
-    (e: DomMouseEvent) => {
+  const mouseUpHandler = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
       dropHandler({ x: e.clientX, y: e.clientY });
     },
     [dropHandler]
   );
-
-  // Touch event handlers
-  const touchDragHandler = useCallback(
-    (e: DomTouchEvent) => {
-      if (e.cancelable) e.preventDefault();
-      if (e.touches.length > 0) {
-        dragHandler({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-      }
-    },
-    [dragHandler]
-  );
-  const touchDropHandler = useCallback(
-    (e: DomTouchEvent) => {
-      if (e.cancelable) e.preventDefault();
-      if (e.changedTouches.length > 0) {
-        dropHandler({
-          x: e.changedTouches[0].clientX,
-          y: e.changedTouches[0].clientY,
-        });
-      }
-    },
-    [dropHandler]
-  );
-
-  // Shared grab handler for both mouse and touch
-  const grabPiece = (
-    { x, y }: positionType,
-    target: HTMLDivElement,
-    piece: Piece
-  ) => {
-    selectPiece(piece);
-    activePieceRef.current = target;
-    isDragging.current = true;
-
-    target.style.position = "absolute";
-    target.style.left = x - target.offsetWidth / 2 + "px";
-    target.style.top = y - target.offsetHeight / 2 + "px";
-    target.style.scale = "1.5";
-  };
-
-  // Mouse grab handler
-  const grabPieceHandler = (e: MouseEvent<HTMLDivElement>) => {
-    if (board.promotionPending) return;
-    const target = e.target as HTMLDivElement;
-
-    // Tile doesn't have a piece
-    if (!validPiece(target)) return;
-
-    const file = Number(target.dataset.file);
-    const rank = Number(target.dataset.rank);
-
-    const piece = board.pieces.get(coordinateToKey({ rank, file }));
-
-    if (!piece) return;
-
-    grabPiece({ x: e.clientX, y: e.clientY }, target, piece);
-  };
-
-  // Touch grab handler
-  const touchGrabHandler = (e: TouchEvent<HTMLDivElement>) => {
-    if (board.promotionPending) return;
-    const target = e.target as HTMLDivElement;
-
-    if (!validPiece(target)) return;
-
-    const file = Number(target.dataset.file);
-    const rank = Number(target.dataset.rank);
-
-    const piece = board.pieces.get(coordinateToKey({ rank, file }));
-
-    if (!piece) return;
-
-    // Store touch start position for tap detection
-    touchStartPosition.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-    };
-
-    grabPiece(
-      { x: e.touches[0].clientX, y: e.touches[0].clientY },
-      target,
-      piece
-    );
-  };
-
-  // Handle board click/tap
   const handleBoardClick = (e: MouseEvent<HTMLDivElement>) => {
     if (ignoreNextClick.current) {
       ignoreNextClick.current = false;
@@ -222,40 +187,177 @@ export default function Board({
     selectPiece(null); // Deselecting a piece when clicking empty square
   };
 
-  // Handle touch end (for taps)
+  // Title: Touch event handlers
+  const touchStartHandler = (e: TouchEvent<HTMLDivElement>) => {
+    // Wait Until Select Promotion Option
+    if (board.promotionPending) return;
+
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const element = e.target as HTMLDivElement;
+
+    // Tile doesn't have a piece
+    if (!validPiece(element)) return;
+
+    const file = Number(element.dataset.file);
+    const rank = Number(element.dataset.rank);
+
+    const piece = board.pieces.get(coordinateToKey({ rank, file }));
+
+    if (!piece) return;
+
+    grabPiece({ x: touch.clientX, y: touch.clientY }, element);
+  };
+  const touchMoveHandler = useCallback(
+    (e: TouchEvent<HTMLDivElement>) => {
+      if (e.cancelable) e.preventDefault();
+      if (e.touches.length > 0) return;
+
+      const { clientX: x, clientY: y } = e.touches[0];
+      dragHandler({ x, y });
+    },
+    [dragHandler]
+  );
+
   const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
-    if (!boardRef.current || !touchStartPosition.current) return;
+    if (!boardRef.current || !movingRef.current) return;
+
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    // Double Check
+    if (movingRef.current.piece.color !== board.turn) return;
+
+    movePiece(board.selectedPiece!.coordinates);
+
+    // if (!touchRef.current.position) return;
 
     // Check if it was a tap (minimal movement)
-    if (e.changedTouches.length > 0) {
-      const touch = e.changedTouches[0];
-      const dx = Math.abs(touch.clientX - touchStartPosition.current.x);
-      const dy = Math.abs(touch.clientY - touchStartPosition.current.y);
+    // const dx = Math.abs(touch.clientX - touchRef.current.position.x);
+    // const dy = Math.abs(touch.clientY - touchRef.current.position.y);
 
-      // Consider it a tap if movement was less than 5px
-      if (dx < 5 && dy < 5) {
-        const tappedPosition: Coordinates = getTargetPosition(
-          touch.clientX,
-          touch.clientY
-        );
+    // It's a tap when movement was minimal and time is short
+    // if (dx < 5 && dy < 5) {
+    //   const tappedPosition: Coordinates = getTargetPosition(
+    //     touch.clientX,
+    //     touch.clientY
+    //   );
 
-        // If we have a selected piece and tapped on a valid move
-        if (
-          board.selectedPiece &&
-          board.moves.some((move) => sameCoordinates(move, tappedPosition))
-        ) {
-          movePiece(tappedPosition);
-          return;
-        }
+    //   // If we have piece and tapped on a valid move
+    //   const tapedOnMove =
+    //     board.selectedPiece &&
+    //     board.moves.some((move) => sameCoordinates(move, tappedPosition));
 
-        selectPiece(null); // Deselecting a piece when tapping empty square
-      }
-    }
+    //   // Tapped on one of the current turn pieces
+    //   const touchPiece = touchRef.current.piece;
+    //   const tappedOnPiece = touchPiece && touchPiece.color === board.turn;
 
-    touchStartPosition.current = null;
+    //   if (tapedOnMove) {
+    //     movePiece(tappedPosition);
+    //     return;
+    //   } else if (tappedOnPiece) {
+    //     // Toggle The Selection Of The Piece
+    //     const samePiece =
+    //       board.selectedPiece &&
+    //       sameCoordinates(
+    //         touchPiece.coordinates,
+    //         board.selectedPiece.coordinates
+    //       );
+    //     selectPiece(samePiece ? touchPiece : null);
+    //   } else {
+    //     selectPiece(null); // Deselecting a piece when tapping empty square
+    //   }
+    // } else if (isDragging.current) {
+    // dropHandler(touchRef.current.position);
+    // }
+
+    // touchRef.current = {
+    //   position: null,
+    //   piece: null,
+    // };
   };
 
+  // const touchEndHandler = useCallback(
+  //   (e: DomTouchEvent) => {
+  //     if (e.cancelable) e.preventDefault();
+  //     const touch = e.changedTouches[e.changedTouches.length - 1];
+  //     if (!touch) return;
+
+  //     const tappedPosition = {
+  //       x: e.changedTouches[0].clientX,
+  //       y: e.changedTouches[0].clientY,
+  //     };
+  //     const tappedCoords = getTargetPosition(
+  //       tappedPosition.x,
+  //       tappedPosition.y
+  //     );
+
+  //     const pieceMove =
+  //       board.selectedPiece &&
+  //       board.moves.some((m) => sameCoordinates(tappedCoords, m));
+
+  //     if (pieceMove) {
+  //       console.log(224);
+  //       dropHandler(tappedPosition);
+  //     }
+
+  //     //   // if (
+  //     //   //   sameCoordinates(
+  //     //   //     touchRef.current.piece!.coordinates,
+  //     //   //     board.selectedPiece.coordinates
+  //     //   //   )
+  //     //   // ) {
+  //     //   //   selectPiece(null);
+  //     //   // } else if (
+  //     //   //   board.selectedPiece &&
+  //     //   //   board.moves.some((move) => sameCoordinates(move, tappedCoords))
+  //     //   // ) {
+  //     //   //   dropHandler(tappedPosition);
+  //     //   // } else {
+  //     //   //   selectPiece(null);
+  //     //   //   // touchRef.current = { position: null, piece: null, time: 0 };
+  //     //   //   touchRef.current = { position: null, piece: null };
+  //     //   // }
+  //   },
+  //   [board.moves, board.selectedPiece, getTargetPosition, dropHandler]
+  // );
+
+  // const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+  //   if (!touchRef.current.piece) return;
+
+  //   const touch = e.touches[0];
+  //   if (!touch) return;
+
+  //   const dx = Math.abs(touch.clientX - touchRef.current.position!.x);
+  //   const dy = Math.abs(touch.clientY - touchRef.current.position!.y);
+
+  //   // Start dragging if the touch exceeds more than 10 px
+  //   if ((dx > 10 || dy > 10) && !isDragging.current) {
+  //     const piece = touchRef.current.piece;
+  //     if (!piece) return;
+
+  //     if (activePieceRef.current && piece.color === board.turn) {
+  //       selectPiece(piece);
+  //       isDragging.current = true;
+
+  //       activePieceRef.current.style.position = "absolute";
+  //       activePieceRef.current.style.left =
+  //         touch.clientX - activePieceRef.current.offsetWidth / 2 + "px";
+  //       activePieceRef.current.style.top =
+  //         touch.clientY - activePieceRef.current.offsetHeight / 2 + "px";
+  //       activePieceRef.current.style.scale = "1.5";
+  //     }
+  //   }
+  //   // Continue dragging if already started
+  //   if (isDragging.current) {
+  //     // if (e.cancelable) e.preventDefault();
+  //     dragHandler({ x: touch.clientX, y: touch.clientY });
+  //   }
+  // };
+
   const handlePromotion = (type: PromotionOptions) => {
+    if (!board.promotionPending) return;
     setPromotingSquare(undefined);
     promote(type);
   };
@@ -276,36 +378,39 @@ export default function Board({
     return board.history[length - 1];
   }, [board.history]);
 
-  // Setup and cleanup event listeners
-  useEffect(() => {
-    const mouseMoveHandler = (e: DomMouseEvent) => dragPieceHandler(e);
-    const mouseUpHandler = (e: DomMouseEvent) => dropPieceHandler(e);
-    const touchMoveHandler = (e: DomTouchEvent) => touchDragHandler(e);
-    const touchEndHandler = (e: DomTouchEvent) => touchDropHandler(e);
+  // // Setup and cleanup event listeners
+  // useEffect(() => {
+  //   const mouseMoveHandler = (e: DomMouseEvent) => dragPieceHandler(e);
+  //   const mouseUpHandler = (e: DomMouseEvent) => dropPieceHandler(e);
+  //   const touchStartHandler = (e: DomTouchEvent) => touchDragHandler(e);
+  //   const touchEndHandler = (e: DomTouchEvent) => touchDropHandler(e);
 
-    // Add document-level listeners
-    document.addEventListener("mousemove", mouseMoveHandler);
-    document.addEventListener("mouseup", mouseUpHandler);
-    document.addEventListener("touchmove", touchMoveHandler, {
-      passive: false,
-    });
-    document.addEventListener("touchend", touchEndHandler);
+  //   // Add document-level listeners
+  //   document.addEventListener("mousemove", mouseMoveHandler);
+  //   document.addEventListener("mouseup", mouseUpHandler);
+  //   document.addEventListener("touchmove", touchStartHandler, {
+  //     passive: false,
+  //   });
+  //   document.addEventListener("touchend", touchEndHandler);
 
-    return () => {
-      // Cleanup document-level listeners
-      document.removeEventListener("mousemove", mouseMoveHandler);
-      document.removeEventListener("mouseup", mouseUpHandler);
-      document.removeEventListener("touchmove", touchMoveHandler);
-      document.removeEventListener("touchend", touchEndHandler);
-    };
-  }, [dragPieceHandler, dropPieceHandler, touchDragHandler, touchDropHandler]);
+  //   return () => {
+  //     // Cleanup document-level listeners
+  //     document.removeEventListener("mousemove", mouseMoveHandler);
+  //     document.removeEventListener("mouseup", mouseUpHandler);
+  //     document.removeEventListener("touchmove", touchStartHandler);
+  //     document.removeEventListener("touchend", touchEndHandler);
+  //   };
+  // }, [dragPieceHandler, dropPieceHandler, touchDragHandler, touchDropHandler]);
 
   return (
     <div
       className="board"
       ref={boardRef}
-      onMouseDown={grabPieceHandler}
-      onTouchStart={touchGrabHandler}
+      onMouseDown={mouseDownHandler}
+      onMouseMove={mouseMoveHandler}
+      onMouseUp={mouseUpHandler}
+      onTouchStart={touchStartHandler}
+      onTouchMove={touchMoveHandler}
       onTouchEnd={handleTouchEnd}
       onClick={handleBoardClick}
     >

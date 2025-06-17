@@ -15,6 +15,8 @@ export interface Coordinates {
   file: number;
 }
 
+export type positionType = { x: number; y: number };
+
 export interface Piece {
   type: PieceType;
   color: PieceColor;

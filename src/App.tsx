@@ -13,7 +13,7 @@ export default function App() {
         movePiece={movePiece}
         promote={promote}
       />
-      {/* TODO: History
+      {/* TODO History
         <div>
         <h1 className="text-white">History</h1>
       </div> */}

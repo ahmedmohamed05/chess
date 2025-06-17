@@ -22,7 +22,7 @@
 @media (max-width: 500px) {
   :root {
     --square-size: 40px;
-    --piece-size: 20px;
+    --piece-size: 30px;
   }
 }
 
@@ -37,7 +37,7 @@
   position: absolute;
   translate: calc(var(--square-size) * -1 / 2 + var(--square-size) - 10px)
     calc(var(--square-size) / 2 - 12px);
-  font-size: clamp(0.75rem, 0.571rem + 0.476vw, 1rem);
+  font-size: clamp(0.5rem, 0.571rem + 0.476vw, 1rem);
 }
 
 .tile:has([data-file="1"])::after {
@@ -45,7 +45,7 @@
   position: absolute;
   translate: calc(var(--square-size) * -1 / 2 + 10px)
     calc(var(--square-size) * -1 / 2 + 15px);
-  font-size: clamp(0.75rem, 0.571rem + 0.476vw, 1rem);
+  font-size: clamp(0.5rem, 0.571rem + 0.476vw, 1rem);
 }
 
 .board .tile:has([data-color="light"]) {
@@ -79,7 +79,7 @@
 .promoting-square {
   position: absolute;
   user-select: none;
-  width: calc(var(--piece-size) * 2);
+  width: calc((var(--piece-size) + 10px) * 2);
   aspect-ratio: 1/1;
   display: grid;
   gap: 1rem;

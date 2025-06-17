@@ -48,17 +48,18 @@ export function useBoard(
   const movePiece = useCallback(
     (toPosition: Coordinates) => {
       if (!board.selectedPiece) return;
+      if (board.selectedPiece.color !== board.turn) return;
 
       const isValidMove = validMoves.some((move) =>
         sameCoordinates(move, toPosition)
       );
       if (!isValidMove) return;
 
-      // TODO: blocking check with other pieces
+      // TODO blocking check with other pieces
       // if (board.status === "check" && board.selectedPiece.type !== "king")
       //   return;
 
-      // TODO: Discover check
+      // TODO Discover check
 
       const piece = board.selectedPiece!;
       const fromPosition = piece.coordinates;
@@ -169,7 +170,7 @@ export function useBoard(
         };
       });
     },
-    [board.selectedPiece, validMoves]
+    [board.selectedPiece, validMoves, board.turn]
   );
 
   const promote = useCallback(
