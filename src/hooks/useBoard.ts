@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   BoardState,
   Coordinates,
   Move,
   Piece,
+  PiecesMap,
   PromotionOptions,
   useBoardType,
 } from "../types";
@@ -11,6 +12,8 @@ import { INIT_BOARD_STATE } from "../constants";
 import sameCoordinates from "../utils/check-coordinates";
 import calculateValidMoves from "../utils/calculate-valid-moves";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
+import findPiece from "../utils/find-piece";
+import pieceCanSee from "../utils/does-see";
 
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
@@ -164,7 +167,6 @@ export function useBoard(
           history: [...prev.history, move],
           moves: [],
           selectedPiece: null,
-          status: "playing",
           enPassantTarget,
           promotionPending: isPromotion,
         };
@@ -211,6 +213,33 @@ export function useBoard(
     [board.promotionPending, board.history]
   );
 
+  useEffect(() => {
+    setBoard((prev) => {
+      // Check If Any Piece Can See Opponent king
+      const myKing = findPiece(
+        prev.pieces,
+        (p) => p.type === "king" && p.color === prev.turn
+      )!;
+
+      // console.log(myKing);
+
+      const opponentPieces: PiecesMap = new Map();
+      for (const [key, piece] of prev.pieces) {
+        if (piece.color !== prev.turn) opponentPieces.set(key, piece);
+      }
+
+      let isCheck = false;
+
+      for (const [, piece] of opponentPieces) {
+        if (pieceCanSee(board.pieces, piece, myKing.coordinates)) {
+          isCheck = true;
+        }
+      }
+
+      return { ...prev, status: isCheck ? "check" : "playing" };
+    });
+  }, [board.pieces, board.turn]);
+
   return {
     board: { ...board, moves: validMoves }, // Need to re-reference moves array to apply highlight on it
     selectPiece,
@@ -218,3 +247,7 @@ export function useBoard(
     promote,
   };
 }
+
+// function isCheck() {
+
+// }

@@ -37,6 +37,12 @@ export interface Move {
 
 export type CoordinateKey = `${number},${number}`;
 export type PiecesMap = Map<CoordinateKey, Piece>;
+export type PositionStatus =
+  | "playing"
+  | "check"
+  | "checkmate"
+  | "draw"
+  | "stalemate";
 
 export interface BoardState {
   pieces: PiecesMap;
@@ -44,7 +50,7 @@ export interface BoardState {
   turn: PieceColor;
   selectedPiece: Piece | null;
   history: Move[];
-  status: "playing" | "check" | "checkmate" | "draw" | "stalemate";
+  status: PositionStatus;
   enPassantTarget: Coordinates | undefined;
   castling: boolean | undefined;
   promotionPending: boolean;

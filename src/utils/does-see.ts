@@ -21,7 +21,16 @@ export default function pieceCanSee(
             file,
           };
           if (!isValidCoordinates(coords)) return false;
-          if (pieces.has(coordinateToKey(coords))) return false;
+          // Piece on the target square with same color => false
+          // Piece on the target square with other color => true
+          // No Piece on the target square => true
+          const pieceOnSquare = pieces.get(coordinateToKey(coords));
+          if (
+            pieceOnSquare &&
+            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
+            pieceOnSquare.color === piece.color
+          )
+            return false;
           if (sameCoordinates(coords, targetSquare)) return true;
         }
         return false;
@@ -34,7 +43,16 @@ export default function pieceCanSee(
             file: direction == "right" ? file + amount : file - amount,
           };
           if (!isValidCoordinates(coords)) return false;
-          if (pieces.has(coordinateToKey(coords))) return false;
+          // Piece on the target square with same color => false
+          // Piece on the target square with other color => true
+          // No Piece on the target square => true
+          const pieceOnSquare = pieces.get(coordinateToKey(coords));
+          if (
+            pieceOnSquare &&
+            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
+            pieceOnSquare.color === piece.color
+          )
+            return false;
           if (sameCoordinates(coords, targetSquare)) return true;
         }
         return false;
@@ -56,7 +74,17 @@ export default function pieceCanSee(
             file: direction === "up" ? file - offset : file + offset,
           };
           if (!isValidCoordinates(coords)) return false;
-          if (pieces.has(coordinateToKey(coords))) return false;
+          // Piece on the target square with same color => false
+          // Piece on the target square with other color => true
+          // No Piece on the target square => true
+          const pieceOnSquare = pieces.get(coordinateToKey(coords));
+          if (
+            pieceOnSquare &&
+            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
+            pieceOnSquare.color === piece.color
+          )
+            return false;
+
           if (sameCoordinates(coords, targetSquare)) return true;
         }
         return false;
@@ -69,8 +97,21 @@ export default function pieceCanSee(
             file: direction === "up" ? file + offset : file - offset,
           };
           if (!isValidCoordinates(coords)) return false;
-          if (pieces.has(coordinateToKey(coords))) return false;
-          if (sameCoordinates(coords, targetSquare)) return true;
+
+          // Piece on the target square with same color => false
+          // Piece on the target square with other color => true
+          // No Piece on the target square => true
+          const pieceOnSquare = pieces.get(coordinateToKey(coords));
+          if (
+            pieceOnSquare &&
+            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
+            pieceOnSquare.color === piece.color
+          )
+            return false;
+
+          if (sameCoordinates(coords, targetSquare))
+            // if (pieces.has(coordinateToKey(coords))) return false;
+            return true;
         }
         return false;
       };
@@ -100,6 +141,16 @@ export default function pieceCanSee(
         (move) => isValidCoordinates(move)
       );
       for (const coords of allCords) {
+        // Piece on the target square with same color => false
+        // Piece on the target square with other color => true
+        // No Piece on the target square => true
+        const pieceOnSquare = pieces.get(coordinateToKey(coords));
+        if (
+          pieceOnSquare &&
+          sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
+          pieceOnSquare.color === piece.color
+        )
+          return false;
         if (sameCoordinates(coords, targetSquare)) return true;
       }
 

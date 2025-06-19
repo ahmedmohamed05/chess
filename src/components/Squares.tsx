@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { FILES, RANKS } from "../constants";
 import type { Coordinates, Move, PiecesMap, PromotionOptions } from "../types";
 import sameCoordinates from "../utils/check-coordinates";
@@ -13,6 +14,7 @@ export interface SquaresProps {
   lastMove?: Move;
   promotion?: Coordinates;
   promoteHandler: (promoteTo: PromotionOptions) => void;
+  check?: Coordinates;
 }
 
 export default function Squares({
@@ -21,6 +23,7 @@ export default function Squares({
   lastMove,
   promotion,
   promoteHandler,
+  check,
 }: SquaresProps) {
   const squares = [];
 
@@ -45,14 +48,17 @@ export default function Squares({
         showPromotionOptions = sameCoordinates({ rank, file }, promotion);
 
       // Highlight from and to squares
-      const fromBorderColor =
-        lastMove && sameCoordinates({ rank, file }, lastMove.from) && "#c9c9c9";
-      const toBorderColor =
-        lastMove && sameCoordinates({ rank, file }, lastMove.to) && "#fff";
-      const borderColor = fromBorderColor || toBorderColor;
-      const border = borderColor
-        ? { border: `solid   3px ${borderColor}` }
-        : { border: "none" };
+      let borderColor = "transparent";
+
+      if (check && sameCoordinates(check, { rank, file })) {
+        borderColor = "#f00";
+      } else if (lastMove) {
+        if (sameCoordinates({ rank, file }, lastMove.from))
+          borderColor = "#c9c9c9";
+        if (sameCoordinates({ rank, file }, lastMove.to))
+          borderColor = "#ffffff";
+      }
+      const border: CSSProperties = { border: `solid 3px ${borderColor}` };
 
       squares.push(
         <div

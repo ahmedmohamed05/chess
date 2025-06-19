@@ -209,13 +209,14 @@ export default function calculateValidMoves(
       const shortCastlingSquares = getCastlingSquares(turn).short;
       let canCastleShort = true;
       for (const shortCastlingSquare of shortCastlingSquares) {
-        for (const [, piece] of opponentPieces) {
-          if (pieceCanSee(opponentPieces, piece, shortCastlingSquare)) {
+        for (const [, opponentPiece] of opponentPieces) {
+          if (pieceCanSee(pieces, opponentPiece, shortCastlingSquare)) {
             canCastleShort = false;
             break;
           }
         }
       }
+
       if (canCastleShort) {
         const hRook = pieces.get(coordinateToKey({ rank, file: 8 }));
         const lightBishop = pieces.has(coordinateToKey({ rank, file: 6 }));
@@ -229,8 +230,8 @@ export default function calculateValidMoves(
       const longCastlingSquares = getCastlingSquares(turn).long;
       let canCastleLong = true;
       for (const longCastlingSquare of longCastlingSquares) {
-        for (const [, piece] of opponentPieces) {
-          if (pieceCanSee(opponentPieces, piece, longCastlingSquare)) {
+        for (const [, opponentPiece] of opponentPieces) {
+          if (pieceCanSee(pieces, opponentPiece, longCastlingSquare)) {
             canCastleLong = false;
             break;
           }

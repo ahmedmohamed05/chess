@@ -18,6 +18,7 @@ import {
 } from "../types";
 import validPiece from "../utils/valid-piece";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
+import findPiece from "../utils/find-piece";
 
 interface MovingRef {
   position: positionType;
@@ -297,6 +298,19 @@ export default function Board({
     return board.history[length - 1];
   }, [board.history]);
 
+  const checkSquare = useMemo(() => {
+    if (board.status !== "check") return;
+
+    const king = findPiece(
+      board.pieces,
+      (p) => p.color === board.turn && p.type === "king"
+    );
+
+    console.log(king);
+    if (king) return king.coordinates;
+    return undefined;
+  }, [board.status, board.pieces, board.turn]);
+
   return (
     <div
       className="board"
@@ -316,6 +330,7 @@ export default function Board({
           highlight={board.moves}
           lastMove={lastMove}
           pieces={board.pieces}
+          check={checkSquare}
         />
       </div>
     </div>
