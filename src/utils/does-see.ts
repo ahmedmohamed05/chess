@@ -24,14 +24,15 @@ export default function pieceCanSee(
           // Piece on the target square with same color => false
           // Piece on the target square with other color => true
           // No Piece on the target square => true
+          const sameCoords = sameCoordinates(coords, targetSquare);
           const pieceOnSquare = pieces.get(coordinateToKey(coords));
-          if (
-            pieceOnSquare &&
-            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
-            pieceOnSquare.color === piece.color
-          )
-            return false;
-          if (sameCoordinates(coords, targetSquare)) return true;
+          if (sameCoords) {
+            if (pieceOnSquare) {
+              const diffColor = pieceOnSquare.color !== piece.color;
+              return diffColor;
+            }
+          }
+          if (pieceOnSquare) return false;
         }
         return false;
       };
@@ -46,14 +47,15 @@ export default function pieceCanSee(
           // Piece on the target square with same color => false
           // Piece on the target square with other color => true
           // No Piece on the target square => true
+          const sameCoords = sameCoordinates(coords, targetSquare);
           const pieceOnSquare = pieces.get(coordinateToKey(coords));
-          if (
-            pieceOnSquare &&
-            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
-            pieceOnSquare.color === piece.color
-          )
-            return false;
-          if (sameCoordinates(coords, targetSquare)) return true;
+          if (sameCoords) {
+            if (pieceOnSquare) {
+              const diffColor = pieceOnSquare.color !== piece.color;
+              return diffColor;
+            }
+          }
+          if (pieceOnSquare) return false;
         }
         return false;
       };
@@ -77,15 +79,15 @@ export default function pieceCanSee(
           // Piece on the target square with same color => false
           // Piece on the target square with other color => true
           // No Piece on the target square => true
+          const sameCoords = sameCoordinates(coords, targetSquare);
           const pieceOnSquare = pieces.get(coordinateToKey(coords));
-          if (
-            pieceOnSquare &&
-            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
-            pieceOnSquare.color === piece.color
-          )
-            return false;
-
-          if (sameCoordinates(coords, targetSquare)) return true;
+          if (sameCoords) {
+            if (pieceOnSquare) {
+              const diffColor = pieceOnSquare.color !== piece.color;
+              return diffColor;
+            }
+          }
+          if (pieceOnSquare) return false;
         }
         return false;
       };
@@ -97,21 +99,18 @@ export default function pieceCanSee(
             file: direction === "up" ? file + offset : file - offset,
           };
           if (!isValidCoordinates(coords)) return false;
-
           // Piece on the target square with same color => false
           // Piece on the target square with other color => true
           // No Piece on the target square => true
+          const sameCoords = sameCoordinates(coords, targetSquare);
           const pieceOnSquare = pieces.get(coordinateToKey(coords));
-          if (
-            pieceOnSquare &&
-            sameCoordinates(pieceOnSquare.coordinates, targetSquare) &&
-            pieceOnSquare.color === piece.color
-          )
-            return false;
-
-          if (sameCoordinates(coords, targetSquare))
-            // if (pieces.has(coordinateToKey(coords))) return false;
-            return true;
+          if (sameCoords) {
+            if (pieceOnSquare) {
+              const diffColor = pieceOnSquare.color !== piece.color;
+              return diffColor;
+            }
+          }
+          if (pieceOnSquare) return false;
         }
         return false;
       };
