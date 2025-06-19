@@ -107,4 +107,5 @@ export const INIT_BOARD_STATE: BoardState = {
   castling: false,
   enPassantTarget: undefined,
   promotionPending: false,
+  checkOn: undefined,
 };

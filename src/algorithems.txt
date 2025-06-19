@@ -1,0 +1,15 @@
+get all possible moves
+copy the actual position to 'demo'
+copy the selected piece to 'demoPieces'
+get opponentPieces to 'opponentPieces'
+blockingMoves = []
+for (move in possibleMoves) 
+  remove 'demoPieces' from the 'demo'
+  set 'demoPieces' with the new key as 'move'
+  if (Not CheckOn(demo, king)) 
+    blockingMoves.add(move);
+  else 
+    // return the piece to it's old coordinates
+    demo.remove(move)
+    demo.add(piece)
+  return blockingMoves

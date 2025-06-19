@@ -54,6 +54,7 @@ export interface BoardState {
   enPassantTarget: Coordinates | undefined;
   castling: boolean | undefined;
   promotionPending: boolean;
+  checkOn: Coordinates | undefined;
 }
 
 export interface useBoardType {
