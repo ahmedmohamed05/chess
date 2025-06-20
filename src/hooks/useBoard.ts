@@ -35,8 +35,25 @@ export function useBoard(
       enPassantTarget
     );
 
-    // TODO pieces can capture the checking piece, and the king can't move to e2 if the queen on h4
     if (board.status === "check") {
+      if (piece.type === "king") {
+        // Copy everything to not effect the actual position
+        const demoPieces: PiecesMap = new Map(board.pieces);
+        const king = { ...piece };
+        const escapingMoves: Coordinates[] = [];
+        for (const move of possibleMoves) {
+          const demoKing = { ...king, coordinates: move };
+          demoPieces.delete(coordinateToKey(king.coordinates));
+          demoPieces.set(coordinateToKey(move), demoKing);
+          if (!isCheckOn(demoPieces, demoKing)) escapingMoves.push(move);
+          demoPieces.delete(coordinateToKey(move));
+          demoPieces.set(coordinateToKey(king.coordinates), king);
+        }
+        return escapingMoves;
+      }
+
+      // todo check if any of the pieces can block the check, if not than it's checkmate
+
       // Copy everything to not effect the actual position
       const demoPieces: PiecesMap = new Map(board.pieces);
       const blockingMoves: Coordinates[] = [];
@@ -44,6 +61,7 @@ export function useBoard(
         demoPieces,
         (p) => p.type === "king" && p.color === turn
       );
+
       if (!king) throw Error(`${turn} king is missing`);
 
       // simulate moving the piece to check if it's blocks the 'check'
@@ -53,15 +71,14 @@ export function useBoard(
         const newPiece: Piece = { ...piece, coordinates: move };
         demoPieces.set(coordinateToKey(move), newPiece);
 
-        // return the piece to it's old coordinates if it's not blocking the check
-        if (isCheckOn(demoPieces, king)) {
-          demoPieces.delete(coordinateToKey(move));
-          demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
-        } else {
-          blockingMoves.push(move);
-        }
-        return blockingMoves;
+        // If the move can blocks the check then push it
+        if (!isCheckOn(demoPieces, king)) blockingMoves.push(move);
+
+        // return the piece to it's old coordinates
+        demoPieces.delete(coordinateToKey(move));
+        demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
       }
+      return blockingMoves;
     }
 
     return possibleMoves;
