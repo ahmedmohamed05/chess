@@ -69,7 +69,12 @@ export default function calculateValidMoves(
 
       // En Passant
       const enPassant = (isLight && rank === 5) || (!isLight && rank === 4);
-      if (enPassant && enPassantTarget) moves.push(enPassantTarget);
+      if (
+        enPassant &&
+        enPassantTarget &&
+        Math.abs(enPassantTarget.file - file) === 1
+      )
+        moves.push(enPassantTarget);
 
       break;
     }
