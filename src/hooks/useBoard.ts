@@ -35,23 +35,33 @@ export function useBoard(
       enPassantTarget
     );
 
-    if (board.status === "check") {
-      if (piece.type === "king") {
-        // Copy everything to not effect the actual position
-        const demoPieces: PiecesMap = new Map(board.pieces);
-        const king = { ...piece };
-        const escapingMoves: Coordinates[] = [];
-        for (const move of possibleMoves) {
-          const demoKing = { ...king, coordinates: move };
-          demoPieces.delete(coordinateToKey(king.coordinates));
-          demoPieces.set(coordinateToKey(move), demoKing);
-          if (!isCheckOn(demoPieces, demoKing)) escapingMoves.push(move);
-          demoPieces.delete(coordinateToKey(move));
-          demoPieces.set(coordinateToKey(king.coordinates), king);
-        }
-        return escapingMoves;
-      }
+    // todo check for checkmates
+    // todo check for stalemate
+    // todo check for draws, (three times repetition, just kings, bishop and a king)
 
+    if (piece.type === "king") {
+      const demoPieces = new Map(board.pieces);
+      const king = { ...piece };
+      const escapingMoves: Coordinates[] = [];
+
+      possibleMoves.forEach((move) => {
+        const kingKey = coordinateToKey(king.coordinates);
+        const moveKey = coordinateToKey(move);
+
+        demoPieces.delete(kingKey);
+        demoPieces.set(moveKey, { ...king, coordinates: move });
+
+        if (!isCheckOn(demoPieces, { ...king, coordinates: move })) {
+          escapingMoves.push(move);
+        }
+
+        demoPieces.delete(moveKey);
+        demoPieces.set(kingKey, king);
+      });
+      return escapingMoves;
+    }
+
+    if (board.status === "check") {
       // todo check if any of the pieces can block the check, if not than it's checkmate
 
       // Copy everything to not effect the actual position
@@ -65,7 +75,7 @@ export function useBoard(
       if (!king) throw Error(`${turn} king is missing`);
 
       // simulate moving the piece to check if it's blocks the 'check'
-      for (const move of possibleMoves) {
+      possibleMoves.forEach((move) => {
         const oldPiece: Piece = { ...piece };
         demoPieces.delete(coordinateToKey(oldPiece.coordinates));
         const newPiece: Piece = { ...piece, coordinates: move };
@@ -77,11 +87,35 @@ export function useBoard(
         // return the piece to it's old coordinates
         demoPieces.delete(coordinateToKey(move));
         demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
-      }
+      });
+
       return blockingMoves;
     }
 
-    return possibleMoves;
+    // Check for pinned pieces
+    const demoPieces = new Map(board.pieces);
+    const validMoves: Coordinates[] = [];
+
+    const king = findPiece(
+      demoPieces,
+      (p) => p.type === "king" && p.color === turn
+    );
+    if (!king) throw Error(`${turn} king is missing`);
+
+    possibleMoves.forEach((move) => {
+      const oldPiece: Piece = { ...piece };
+      demoPieces.delete(coordinateToKey(oldPiece.coordinates));
+      const newPiece: Piece = { ...piece, coordinates: move };
+      demoPieces.set(coordinateToKey(move), newPiece);
+
+      // If the move can blocks the check then push it
+      if (!isCheckOn(demoPieces, king)) validMoves.push(move);
+
+      // return the piece to it's old coordinates
+      demoPieces.delete(coordinateToKey(move));
+      demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
+    });
+    return validMoves;
   }, [
     board.pieces,
     board.selectedPiece,
@@ -301,7 +335,3 @@ export function useBoard(
     promote,
   };
 }
-
-// function isCheck() {
-
-// }
