@@ -35,10 +35,6 @@ export function useBoard(
       enPassantTarget
     );
 
-    // todo check for checkmates
-    // todo check for stalemate
-    // todo check for draws, (three times repetition, just kings, bishop and a king)
-
     if (piece.type === "king") {
       const demoPieces = new Map(board.pieces);
       const king = { ...piece };
@@ -94,12 +90,13 @@ export function useBoard(
 
     // Check for pinned pieces
     const demoPieces = new Map(board.pieces);
-    const validMoves: Coordinates[] = [];
+    const availableMoves: Coordinates[] = [];
 
     const king = findPiece(
       demoPieces,
       (p) => p.type === "king" && p.color === turn
     );
+
     if (!king) throw Error(`${turn} king is missing`);
 
     possibleMoves.forEach((move) => {
@@ -109,13 +106,13 @@ export function useBoard(
       demoPieces.set(coordinateToKey(move), newPiece);
 
       // If the move can blocks the check then push it
-      if (!isCheckOn(demoPieces, king)) validMoves.push(move);
+      if (!isCheckOn(demoPieces, king)) availableMoves.push(move);
 
       // return the piece to it's old coordinates
       demoPieces.delete(coordinateToKey(move));
       demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
     });
-    return validMoves;
+    return availableMoves;
   }, [
     board.pieces,
     board.selectedPiece,
@@ -149,12 +146,6 @@ export function useBoard(
         sameCoordinates(move, toPosition)
       );
       if (!isValidMove) return;
-
-      // TODO blocking check with other pieces
-      // if (board.status === "check" && board.selectedPiece.type !== "king")
-      //   return;
-
-      // TODO Discover check
 
       const piece = board.selectedPiece!;
       const fromPosition = piece.coordinates;
@@ -251,6 +242,10 @@ export function useBoard(
           coordinates: toPosition,
           hasMoved: true,
         });
+
+        // todo check for checkmates
+        // todo check for stalemate
+        // todo check for draws, (three times repetition, just kings, bishop and a king)
 
         return {
           ...prev,
