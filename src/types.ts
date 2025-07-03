@@ -10,34 +10,34 @@ export type PieceType =
   | "knight"
   | "pawn";
 
-export interface Coordinates {
+export interface BoardPosition {
   rank: number;
   file: number;
 }
 
-export type positionType = { x: number; y: number };
+export type ScreenCoordinates = { x: number; y: number };
 
 export interface Piece {
   type: PieceType;
   color: PieceColor;
-  coordinates: Coordinates;
-  hasMoved?: boolean; // castling or Pawn first move
+  coordinates: BoardPosition;
+  hasMoved?: boolean; // For castling and pawn first move
 }
 
-export type PromotionOptions = Exclude<PieceType, "king" | "pawn">;
+export type PromotionOption = Exclude<PieceType, "king" | "pawn">;
 
 export interface Move {
-  from: Coordinates;
-  to: Coordinates;
+  from: BoardPosition;
+  to: BoardPosition;
   piece: Piece;
   captured?: Piece;
   castle?: "short" | "long";
-  promotion?: PromotionOptions;
+  promotion?: PromotionOption;
 }
 
-export type CoordinateKey = `${number},${number}`;
-export type PiecesMap = Map<CoordinateKey, Piece>;
-export type PositionStatus =
+export type PositionKey = `${number},${number}`;
+export type PiecesMap = Map<PositionKey, Piece>;
+export type GameStatus =
   | "playing"
   | "check"
   | "checkmate"
@@ -46,20 +46,20 @@ export type PositionStatus =
 
 export interface BoardState {
   pieces: PiecesMap;
-  moves: Coordinates[];
+  validMoves: BoardPosition[];
   turn: PieceColor;
   selectedPiece: Piece | null;
-  history: Move[];
-  status: PositionStatus;
-  enPassantTarget: Coordinates | undefined;
-  castling: boolean | undefined;
-  promotionPending: boolean;
-  checkOn: Coordinates | undefined;
+  moveHistory: Move[];
+  status: GameStatus;
+  enPassantTarget: BoardPosition | undefined;
+  castlingAvailable: boolean | undefined;
+  isPromotionPending: boolean;
+  kingInCheckPosition: BoardPosition | undefined;
 }
 
-export interface useBoardType {
-  board: BoardState;
+export interface GameController {
+  boardState: BoardState;
   selectPiece: (piece: Piece | null) => void;
-  movePiece: (toPosition: Coordinates) => void;
-  promote: (promoteTo: PromotionOptions) => void;
+  movePiece: (targetPosition: BoardPosition) => void;
+  promotePawn: (promoteTo: PromotionOption) => void;
 }
