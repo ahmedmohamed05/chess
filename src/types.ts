@@ -10,7 +10,7 @@ export type PieceType =
   | "knight"
   | "pawn";
 
-export interface BoardPosition {
+export interface Coordinates {
   rank: number;
   file: number;
 }
@@ -20,15 +20,15 @@ export type ScreenCoordinates = { x: number; y: number };
 export interface Piece {
   type: PieceType;
   color: PieceColor;
-  coordinates: BoardPosition;
+  coordinates: Coordinates;
   hasMoved?: boolean; // For castling and pawn first move
 }
 
 export type PromotionOption = Exclude<PieceType, "king" | "pawn">;
 
 export interface Move {
-  from: BoardPosition;
-  to: BoardPosition;
+  from: Coordinates;
+  to: Coordinates;
   piece: Piece;
   captured?: Piece;
   castle?: "short" | "long";
@@ -37,6 +37,7 @@ export interface Move {
 
 export type PositionKey = `${number},${number}`;
 export type PiecesMap = Map<PositionKey, Piece>;
+
 export type GameStatus =
   | "playing"
   | "check"
@@ -46,20 +47,26 @@ export type GameStatus =
 
 export interface BoardState {
   pieces: PiecesMap;
-  validMoves: BoardPosition[];
+  validMoves: Coordinates[];
   turn: PieceColor;
   selectedPiece: Piece | null;
-  moveHistory: Move[];
+  history: Move[];
   status: GameStatus;
-  enPassantTarget: BoardPosition | undefined;
+  enPassantTarget: Coordinates | undefined;
   castlingAvailable: boolean | undefined;
-  isPromotionPending: boolean;
-  kingInCheckPosition: BoardPosition | undefined;
+  promotionPending: boolean;
+  kingInCheckPosition: Coordinates | undefined;
 }
 
 export interface GameController {
   boardState: BoardState;
   selectPiece: (piece: Piece | null) => void;
-  movePiece: (targetPosition: BoardPosition) => void;
+  movePiece: (targetPosition: Coordinates) => void;
   promotePawn: (promoteTo: PromotionOption) => void;
+}
+
+export interface MovingRef {
+  position: ScreenCoordinates;
+  piece: Piece;
+  element: HTMLDivElement;
 }

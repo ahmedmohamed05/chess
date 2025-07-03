@@ -9,28 +9,23 @@ import {
 } from "react";
 import Squares from "./Squares";
 import sameCoordinates from "../utils/check-coordinates";
-import {
-  type Coordinates,
-  type Piece,
-  type positionType,
-  type PromotionOptions,
-  type useBoardType,
-} from "../types";
 import validPiece from "../utils/valid-piece";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
+import type {
+  Coordinates,
+  GameController,
+  MovingRef,
+  PromotionOption,
+  ScreenCoordinates,
+} from "../types";
 
-interface MovingRef {
-  position: positionType;
-  piece: Piece;
-  element: HTMLDivElement;
+export interface BoardProps {
+  controller: GameController;
 }
 
-export default function Board({
-  board,
-  movePiece,
-  selectPiece,
-  promote,
-}: useBoardType) {
+export default function Board({ controller }: BoardProps) {
+  const { boardState, movePiece, promotePawn, selectPiece } = controller;
+
   const boardRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const ignoreNextClick = useRef(false);
@@ -40,17 +35,20 @@ export default function Board({
     Coordinates | undefined
   >(undefined);
 
-  const getTargetPosition = useCallback((x: number, y: number): Coordinates => {
-    const boardRect = boardRef.current!.getBoundingClientRect();
-    const relX = x - boardRect.left;
-    const relY = y - boardRect.top;
-    const file = Math.floor((relX / boardRect.width) * 8) + 1;
-    const rank = 8 - Math.floor((relY / boardRect.height) * 8); // 1-8
-    return { file, rank };
-  }, []);
+  const getTargetPosition = useCallback(
+    ({ x, y }: ScreenCoordinates): Coordinates => {
+      const boardRect = boardRef.current!.getBoundingClientRect();
+      const relX = x - boardRect.left;
+      const relY = y - boardRect.top;
+      const file = Math.floor((relX / boardRect.width) * 8) + 1;
+      const rank = 8 - Math.floor((relY / boardRect.height) * 8); // 1-8
+      return { file, rank };
+    },
+    []
+  );
 
   // Title: Board State Shared Handlers
-  const dragHandler = useCallback(({ x, y }: positionType) => {
+  const dragHandler = useCallback(({ x, y }: ScreenCoordinates) => {
     if (!movingRef.current || !isDragging.current) return;
 
     // const piece = activePieceRef.current;
@@ -74,14 +72,14 @@ export default function Board({
     element.style.scale = "1.2";
   }, []);
   const dropHandler = useCallback(
-    ({ x, y }: positionType) => {
+    ({ x, y }: ScreenCoordinates) => {
       if (!movingRef.current || !boardRef.current || !isDragging.current)
         return;
 
       const { element } = movingRef.current;
-      const targetSquare = getTargetPosition(x, y);
+      const targetSquare = getTargetPosition({ x, y });
 
-      if (board.promotionPending) {
+      if (boardState.promotionPending) {
         setPromotingSquare(targetSquare);
       }
       movePiece(targetSquare);
@@ -94,22 +92,26 @@ export default function Board({
       ignoreNextClick.current = true; // To prevent the conflict between 'onClick' and 'onMouseDown'
       movingRef.current = null;
     },
-    [movePiece, getTargetPosition, board.promotionPending, movingRef]
+    [boardState.promotionPending, getTargetPosition, movePiece]
   );
   // TODO Just send the target here
-  const grabPiece = ({ x, y }: positionType, target: HTMLDivElement) => {
+  const grabPiece = (
+    screenCoords: ScreenCoordinates,
+    target: HTMLDivElement
+  ) => {
     if (!boardRef.current) return;
 
-    const pieceCoords = getTargetPosition(x, y);
-    const piece = board.pieces.get(coordinateToKey(pieceCoords));
+    const pieceCoords = getTargetPosition(screenCoords);
+    const piece = boardState.pieces.get(coordinateToKey(pieceCoords));
     if (!piece) return;
 
+    const { x, y } = screenCoords;
     selectPiece(piece);
     isDragging.current = true;
     movingRef.current = {
       element: target,
       piece,
-      position: { x, y },
+      position: screenCoords,
     };
 
     target.classList.add("dragging");
@@ -123,7 +125,7 @@ export default function Board({
   // TODO this and the logic inside 'touchGrabHandler' can be one function
   const mouseDownHandler = (e: MouseEvent<HTMLDivElement>) => {
     // Wait Until Select Promotion Option
-    if (board.promotionPending) return;
+    if (boardState.promotionPending) return;
 
     const element = e.target as HTMLDivElement;
 
@@ -133,7 +135,7 @@ export default function Board({
     const file = Number(element.dataset.file);
     const rank = Number(element.dataset.rank);
 
-    const piece = board.pieces.get(coordinateToKey({ rank, file }));
+    const piece = boardState.pieces.get(coordinateToKey({ rank, file }));
 
     if (!piece) return;
 
@@ -159,15 +161,15 @@ export default function Board({
 
     if (!boardRef.current) return;
 
-    const clickedPosition: Coordinates = getTargetPosition(
-      e.clientX,
-      e.clientY
-    );
+    const clickedPosition: Coordinates = getTargetPosition({
+      x: e.clientX,
+      y: e.clientY,
+    });
 
     // A Piece Selected And Clicked On Another Square
     if (
-      board.selectedPiece &&
-      board.moves.some((move) => sameCoordinates(move, clickedPosition))
+      boardState.selectedPiece &&
+      boardState.validMoves.some((m) => sameCoordinates(m, clickedPosition))
     ) {
       movePiece(clickedPosition);
       return;
@@ -182,7 +184,7 @@ export default function Board({
     e.preventDefault();
 
     // Wait Until Select Promotion Option
-    if (board.promotionPending) return;
+    if (boardState.promotionPending) return;
 
     const touch = e.touches[0];
     if (!touch) return;
@@ -191,20 +193,23 @@ export default function Board({
 
     const file = Number(element.dataset.file);
     const rank = Number(element.dataset.rank);
-    const piece = board.pieces.get(coordinateToKey({ rank, file }));
+    const piece = boardState.pieces.get(coordinateToKey({ rank, file }));
 
     if (piece) {
-      movingRef.current = {
-        position: { x: touch.clientX, y: touch.clientY },
-        piece,
-        element,
-      };
+      // movingRef.current = {
+      //   position: { x: touch.clientX, y: touch.clientY },
+      //   piece,
+      //   element,
+      // };
       isDragging.current = true;
       grabPiece({ x: touch.clientX, y: touch.clientY }, element);
     } else {
-      const tappedTile = getTargetPosition(touch.clientX, touch.clientY);
+      const tappedTile = getTargetPosition({
+        x: touch.clientX,
+        y: touch.clientY,
+      });
 
-      if (board.moves.some((m) => sameCoordinates(m, tappedTile))) {
+      if (boardState.validMoves.some((m) => sameCoordinates(m, tappedTile))) {
         movePiece(tappedTile);
       } else {
         movingRef.current = null;
@@ -241,22 +246,25 @@ export default function Board({
       dropHandler({ x: touch.clientX, y: touch.clientY });
     } else {
       // Handle tap
-      const tappedPosition = getTargetPosition(touch.clientX, touch.clientY);
+      const tappedPosition = getTargetPosition({
+        x: touch.clientX,
+        y: touch.clientY,
+      });
 
       // If we have a selected piece and tapped on a valid move
       if (
-        board.selectedPiece &&
-        board.moves.some((move) => sameCoordinates(move, tappedPosition))
+        boardState.selectedPiece &&
+        boardState.validMoves.some((m) => sameCoordinates(m, tappedPosition))
       ) {
         movePiece(tappedPosition);
       }
       // If tapped on a piece of current turn
-      else if (movingRef.current.piece.color === board.turn) {
+      else if (movingRef.current.piece.color === boardState.turn) {
         // Toggle selection if clicking the same piece
         if (
-          board.selectedPiece &&
+          boardState.selectedPiece &&
           sameCoordinates(
-            board.selectedPiece.coordinates,
+            boardState.selectedPiece.coordinates,
             movingRef.current.piece.coordinates
           )
         ) {
@@ -275,27 +283,27 @@ export default function Board({
     movingRef.current = null;
   };
 
-  const handlePromotion = (type: PromotionOptions) => {
-    if (!board.promotionPending) return;
+  const handlePromotion = (type: PromotionOption) => {
+    if (!boardState.promotionPending) return;
     setPromotingSquare(undefined);
-    promote(type);
+    promotePawn(type);
   };
 
   // Show Promoting Options When PromotingPending or moves history changes
   useEffect(() => {
-    if (board.promotionPending) {
-      const lastMoveIndex = board.history.length - 1;
-      const lastMove = board.history[lastMoveIndex];
+    if (boardState.promotionPending) {
+      const lastMoveIndex = boardState.history.length - 1;
+      const lastMove = boardState.history[lastMoveIndex];
       setPromotingSquare(lastMove.to);
     }
-  }, [board.promotionPending, board.history]);
+  }, [boardState.promotionPending, boardState.history]);
 
   // Last Move Square
   const lastMove = useMemo(() => {
-    const length = board.history.length;
+    const length = boardState.history.length;
     if (length === 0) return undefined;
-    return board.history[length - 1];
-  }, [board.history]);
+    return boardState.history[length - 1];
+  }, [boardState.history]);
 
   // const checkSquare = useMemo(() => {
   //   if (board.status !== "check") return;
@@ -326,10 +334,10 @@ export default function Board({
         <Squares
           promotion={promotingSquare}
           promoteHandler={handlePromotion}
-          highlight={board.moves}
+          highlight={boardState.validMoves}
           lastMove={lastMove}
-          pieces={board.pieces}
-          check={board.checkOn}
+          pieces={boardState.pieces}
+          check={boardState.kingInCheckPosition}
         />
       </div>
     </div>

@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   BoardState,
   Coordinates,
+  GameController,
   Move,
   Piece,
   PiecesMap,
-  PromotionOptions,
-  useBoardType,
+  PromotionOption,
 } from "../types";
 import { INIT_BOARD_STATE } from "../constants";
 import sameCoordinates from "../utils/check-coordinates";
@@ -17,7 +17,7 @@ import isCheckOn from "../utils/is-check";
 
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
-): useBoardType {
+): GameController {
   const [board, setBoard] = useState<BoardState>(initBoard);
 
   const validMoves: Coordinates[] = useMemo(() => {
@@ -262,8 +262,8 @@ export function useBoard(
     [board.selectedPiece, validMoves, board.turn]
   );
 
-  const promote = useCallback(
-    (promoteTo: PromotionOptions) => {
+  const promotePawn = useCallback(
+    (promoteTo: PromotionOption) => {
       if (!board.promotionPending) return;
       if (board.history.length === 0) return;
 
@@ -324,9 +324,9 @@ export function useBoard(
   }, [board.turn]);
 
   return {
-    board: { ...board, moves: validMoves }, // Need to re-reference moves array to apply highlight on it
+    boardState: { ...board, validMoves }, // Need to re-reference moves array to apply highlight on it
     selectPiece,
     movePiece,
-    promote,
+    promotePawn,
   };
 }
