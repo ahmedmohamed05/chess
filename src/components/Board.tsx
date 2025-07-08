@@ -94,8 +94,7 @@ export default function Board({ controller }: BoardProps) {
     },
     [boardState.promotionPending, getTargetPosition, movePiece]
   );
-  // TODO Just send the target here
-  const grabPiece = (
+  const grabPieceFromElement = (
     screenCoords: ScreenCoordinates,
     target: HTMLDivElement
   ) => {
@@ -139,7 +138,7 @@ export default function Board({ controller }: BoardProps) {
 
     if (!piece) return;
 
-    grabPiece({ x: e.clientX, y: e.clientY }, element);
+    grabPieceFromElement({ x: e.clientX, y: e.clientY }, element);
   };
   const mouseMoveHandler = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -196,13 +195,13 @@ export default function Board({ controller }: BoardProps) {
     const piece = boardState.pieces.get(coordinateToKey({ rank, file }));
 
     if (piece) {
-      // movingRef.current = {
-      //   position: { x: touch.clientX, y: touch.clientY },
-      //   piece,
-      //   element,
-      // };
+      movingRef.current = {
+        position: { x: touch.clientX, y: touch.clientY },
+        piece,
+        element,
+      };
       isDragging.current = true;
-      grabPiece({ x: touch.clientX, y: touch.clientY }, element);
+      grabPieceFromElement({ x: touch.clientX, y: touch.clientY }, element);
     } else {
       const tappedTile = getTargetPosition({
         x: touch.clientX,

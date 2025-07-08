@@ -302,6 +302,7 @@ export function useBoard(
 
   // Kings Checks
   useEffect(() => {
+    console.log("here");
     setBoard((prev) => {
       const lightKing = findPiece(
         prev.pieces,
@@ -319,7 +320,11 @@ export function useBoard(
       else if (isCheckOn(prev.pieces, darkKing)) checkOn = darkKing.coordinates;
       else checkOn = undefined;
 
-      return { ...prev, status: checkOn ? "check" : "playing", checkOn };
+      return {
+        ...prev,
+        status: checkOn ? "check" : "playing",
+        kingInCheckPosition: checkOn,
+      };
     });
   }, [board.turn]);
 
