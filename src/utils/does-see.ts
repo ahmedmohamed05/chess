@@ -4,7 +4,6 @@ import isValidCoordinates from "./coordinates-range";
 import { coordinateToKey } from "./key-coordinate-swap";
 import getAllPossibleMoves from "./possible-moves";
 
-// TODO start searching coordinates from the square not checking all the possible move of a piece for faster search
 export default function pieceCanSee(
   pieces: PiecesMap,
   piece: Piece,
@@ -21,19 +20,28 @@ export default function pieceCanSee(
             file,
           };
           if (!isValidCoordinates(coords)) return false;
-          // Piece on the target square with same color => false
-          // Piece on the target square with other color => true
-          // No Piece on the target square => true
           const sameCoords = sameCoordinates(coords, targetSquare);
           const pieceOnSquare = pieces.get(coordinateToKey(coords));
-          if (sameCoords) {
-            if (pieceOnSquare) {
-              const diffColor = pieceOnSquare.color !== piece.color;
-              return diffColor;
+
+          if (pieceOnSquare) {
+            if (sameCoords) {
+              return piece.color !== pieceOnSquare.color;
             }
+            return false;
           }
-          if (pieceOnSquare) return false;
+
+          // if (sameCoords) {
+          //   // Piece on the target square with same color => false
+          //   // Piece on the target square with other color => true
+          //   if (pieceOnSquare) {
+          //     const diffColor = pieceOnSquare.color !== piece.color;
+          //     return diffColor;
+          //   }
+          //   // No Piece on the target square => true
+          //   return true;
+          // }
         }
+
         return false;
       };
 
@@ -44,18 +52,14 @@ export default function pieceCanSee(
             file: direction == "right" ? file + amount : file - amount,
           };
           if (!isValidCoordinates(coords)) return false;
-          // Piece on the target square with same color => false
-          // Piece on the target square with other color => true
-          // No Piece on the target square => true
           const sameCoords = sameCoordinates(coords, targetSquare);
           const pieceOnSquare = pieces.get(coordinateToKey(coords));
-          if (sameCoords) {
-            if (pieceOnSquare) {
-              const diffColor = pieceOnSquare.color !== piece.color;
-              return diffColor;
+          if (pieceOnSquare) {
+            if (sameCoords) {
+              return piece.color !== pieceOnSquare.color;
             }
+            return false;
           }
-          if (pieceOnSquare) return false;
         }
         return false;
       };

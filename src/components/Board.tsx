@@ -121,7 +121,6 @@ export default function Board({ controller }: BoardProps) {
   };
 
   // Title: Mouse event handlers
-  // TODO this and the logic inside 'touchGrabHandler' can be one function
   const mouseDownHandler = (e: MouseEvent<HTMLDivElement>) => {
     // Wait Until Select Promotion Option
     if (boardState.promotionPending) return;
@@ -312,7 +311,6 @@ export default function Board({ controller }: BoardProps) {
   //     (p) => p.color === board.turn && p.type === "king"
   //   );
 
-  //   console.log(king);
   //   if (king) return king.coordinates;
   //   return undefined;
   // }, [board.status, board.pieces, board.turn]);

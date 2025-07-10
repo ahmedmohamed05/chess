@@ -5,7 +5,6 @@ import type {
   GameController,
   Move,
   Piece,
-  PiecesMap,
   PromotionOption,
 } from "../types";
 import { INIT_BOARD_STATE } from "../constants";
@@ -35,33 +34,33 @@ export function useBoard(
       enPassantTarget
     );
 
+    // King can't move into checks
     if (piece.type === "king") {
       const demoPieces = new Map(board.pieces);
       const king = { ...piece };
       const escapingMoves: Coordinates[] = [];
+      const originalKingKey = coordinateToKey(king.coordinates);
 
       possibleMoves.forEach((move) => {
-        const kingKey = coordinateToKey(king.coordinates);
-        const moveKey = coordinateToKey(move);
+        const demoMoveKey = coordinateToKey(move);
+        const demoKingPiece = { ...king, coordinates: move };
 
-        demoPieces.delete(kingKey);
-        demoPieces.set(moveKey, { ...king, coordinates: move });
+        demoPieces.delete(originalKingKey);
+        demoPieces.set(demoMoveKey, demoKingPiece);
 
-        if (!isCheckOn(demoPieces, { ...king, coordinates: move })) {
+        if (!isCheckOn(demoPieces, demoKingPiece)) {
           escapingMoves.push(move);
         }
 
-        demoPieces.delete(moveKey);
-        demoPieces.set(kingKey, king);
+        demoPieces.delete(demoMoveKey);
+        demoPieces.set(originalKingKey, king);
       });
       return escapingMoves;
     }
 
     if (board.status === "check") {
-      // todo check if any of the pieces can block the check, if not than it's checkmate
-
       // Copy everything to not effect the actual position
-      const demoPieces: PiecesMap = new Map(board.pieces);
+      const demoPieces = new Map(board.pieces);
       const blockingMoves: Coordinates[] = [];
       const king = findPiece(
         demoPieces,
@@ -70,19 +69,21 @@ export function useBoard(
 
       if (!king) throw Error(`${turn} king is missing`);
 
-      // simulate moving the piece to check if it's blocks the 'check'
+      // simulate moving the piece to check if it can blocks the 'check'
       possibleMoves.forEach((move) => {
-        const oldPiece: Piece = { ...piece };
-        demoPieces.delete(coordinateToKey(oldPiece.coordinates));
-        const newPiece: Piece = { ...piece, coordinates: move };
-        demoPieces.set(coordinateToKey(move), newPiece);
+        const demoMoveKey = coordinateToKey(move);
+        // copy the piece to re-put it to it's old position, simulating capturing
+        const oldPiece = demoPieces.get(demoMoveKey);
+        demoPieces.delete(coordinateToKey(piece.coordinates));
+        demoPieces.set(demoMoveKey, { ...piece, coordinates: move });
 
         // If the move can blocks the check then push it
         if (!isCheckOn(demoPieces, king)) blockingMoves.push(move);
 
         // return the piece to it's old coordinates
-        demoPieces.delete(coordinateToKey(move));
-        demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
+        demoPieces.delete(demoMoveKey);
+        demoPieces.set(coordinateToKey(piece.coordinates), piece);
+        if (oldPiece) demoPieces.set(demoMoveKey, oldPiece);
       });
 
       return blockingMoves;
@@ -195,9 +196,6 @@ export function useBoard(
           const capturedPawnCoordinates =
             prev.history[prev.history.length - 1].to; // En-Passant Must Apply On The Last Pawn Move
 
-          // capturedIndex = newPieces.findIndex((p) =>
-          //   sameCoordinates(p.coordinates, capturedPawnCoordinates)
-          // );
           capturedPiece = newPieces.get(
             coordinateToKey(capturedPawnCoordinates)
           );
@@ -242,10 +240,6 @@ export function useBoard(
           coordinates: toPosition,
           hasMoved: true,
         });
-
-        // todo check for checkmates
-        // todo check for stalemate
-        // todo check for draws, (three times repetition, just kings, bishop and a king)
 
         return {
           ...prev,
@@ -302,23 +296,25 @@ export function useBoard(
 
   // Kings Checks
   useEffect(() => {
-    console.log("here");
     setBoard((prev) => {
-      const lightKing = findPiece(
+      const myKing = findPiece(
         prev.pieces,
-        (p) => p.type === "king" && p.color === "light"
-      );
-      const darkKing = findPiece(
-        prev.pieces,
-        (p) => p.type === "king" && p.color === "dark"
+        (p) => p.color === prev.turn && p.type === "king"
       );
 
-      if (!lightKing || !darkKing) throw Error("one of the kings is missing");
+      if (!myKing) throw Error(`${prev.turn} kings is missing`);
 
-      let checkOn = undefined;
-      if (isCheckOn(prev.pieces, lightKing)) checkOn = lightKing.coordinates;
-      else if (isCheckOn(prev.pieces, darkKing)) checkOn = darkKing.coordinates;
-      else checkOn = undefined;
+      const checkOn = isCheckOn(prev.pieces, myKing)
+        ? myKing.coordinates
+        : undefined;
+
+      // TODO check for checkmates
+      // if (checkOn) {
+
+      // }
+
+      // TODO check for stalemate
+      // TODO check for draws, (three times repetition, just kings, bishop and a king)
 
       return {
         ...prev,

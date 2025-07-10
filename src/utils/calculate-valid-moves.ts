@@ -193,11 +193,9 @@ export default function calculateValidMoves(
 
     case "king": {
       // Add All Possible Moves
-      moves = getAllPossibleMoves("king", piece.coordinates).filter((move) =>
-        validMove(move)
+      moves = getAllPossibleMoves("king", piece.coordinates).filter(
+        (move) => !pieces.get(coordinateToKey(move))
       );
-
-      moves = moves.filter((move) => validMove(move)); // Filter The Moves
 
       // If The King Moved
       if (piece.hasMoved) break;
