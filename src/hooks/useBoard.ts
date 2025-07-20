@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   BoardState,
   Coordinates,
@@ -9,118 +9,15 @@ import type {
 } from "../types";
 import { INIT_BOARD_STATE } from "../constants";
 import sameCoordinates from "../utils/check-coordinates";
-import calculateValidMoves from "../utils/calculate-valid-moves";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
 import findPiece from "../utils/find-piece";
 import isCheckOn from "../utils/is-check";
+import getPieceMoves from "../utils/get-piece-moves";
 
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
 ): GameController {
   const [board, setBoard] = useState<BoardState>(initBoard);
-
-  const validMoves: Coordinates[] = useMemo(() => {
-    if (!board.selectedPiece) return [];
-
-    const pieces = board.pieces;
-    const piece = board.selectedPiece;
-    const turn = board.turn;
-    const enPassantTarget = board.enPassantTarget;
-
-    const possibleMoves = calculateValidMoves(
-      pieces,
-      piece,
-      turn,
-      enPassantTarget
-    );
-
-    // King can't move into checks
-    if (piece.type === "king") {
-      const demoPieces = new Map(board.pieces);
-      const king = { ...piece };
-      const escapingMoves: Coordinates[] = [];
-      const originalKingKey = coordinateToKey(king.coordinates);
-
-      possibleMoves.forEach((move) => {
-        const demoMoveKey = coordinateToKey(move);
-        const demoKingPiece = { ...king, coordinates: move };
-
-        demoPieces.delete(originalKingKey);
-        demoPieces.set(demoMoveKey, demoKingPiece);
-
-        if (!isCheckOn(demoPieces, demoKingPiece)) {
-          escapingMoves.push(move);
-        }
-
-        demoPieces.delete(demoMoveKey);
-        demoPieces.set(originalKingKey, king);
-      });
-      return escapingMoves;
-    }
-
-    if (board.status === "check") {
-      // Copy everything to not effect the actual position
-      const demoPieces = new Map(board.pieces);
-      const blockingMoves: Coordinates[] = [];
-      const king = findPiece(
-        demoPieces,
-        (p) => p.type === "king" && p.color === turn
-      );
-
-      if (!king) throw Error(`${turn} king is missing`);
-
-      // simulate moving the piece to check if it can blocks the 'check'
-      possibleMoves.forEach((move) => {
-        const demoMoveKey = coordinateToKey(move);
-        // copy the piece to re-put it to it's old position, simulating capturing
-        const oldPiece = demoPieces.get(demoMoveKey);
-        demoPieces.delete(coordinateToKey(piece.coordinates));
-        demoPieces.set(demoMoveKey, { ...piece, coordinates: move });
-
-        // If the move can blocks the check then push it
-        if (!isCheckOn(demoPieces, king)) blockingMoves.push(move);
-
-        // return the piece to it's old coordinates
-        demoPieces.delete(demoMoveKey);
-        demoPieces.set(coordinateToKey(piece.coordinates), piece);
-        if (oldPiece) demoPieces.set(demoMoveKey, oldPiece);
-      });
-
-      return blockingMoves;
-    }
-
-    // Check for pinned pieces
-    const demoPieces = new Map(board.pieces);
-    const availableMoves: Coordinates[] = [];
-
-    const king = findPiece(
-      demoPieces,
-      (p) => p.type === "king" && p.color === turn
-    );
-
-    if (!king) throw Error(`${turn} king is missing`);
-
-    possibleMoves.forEach((move) => {
-      const oldPiece: Piece = { ...piece };
-      demoPieces.delete(coordinateToKey(oldPiece.coordinates));
-      const newPiece: Piece = { ...piece, coordinates: move };
-      demoPieces.set(coordinateToKey(move), newPiece);
-
-      // If the move can blocks the check then push it
-      if (!isCheckOn(demoPieces, king)) availableMoves.push(move);
-
-      // return the piece to it's old coordinates
-      demoPieces.delete(coordinateToKey(move));
-      demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
-    });
-    return availableMoves;
-  }, [
-    board.pieces,
-    board.selectedPiece,
-    board.turn,
-    board.enPassantTarget,
-    board.status,
-  ]);
 
   const selectPiece = useCallback(
     (piece: Piece | null) => {
@@ -131,11 +28,11 @@ export function useBoard(
         return {
           ...prev,
           selectedPiece: piece,
-          moves: validMoves,
+          moves: getPieceMoves,
         };
       });
     },
-    [board.turn, validMoves]
+    [board.turn]
   );
 
   const movePiece = useCallback(
@@ -143,7 +40,16 @@ export function useBoard(
       if (!board.selectedPiece) return;
       if (board.selectedPiece.color !== board.turn) return;
 
-      const isValidMove = validMoves.some((move) =>
+      const pieceMoves = getPieceMoves(
+        board.pieces,
+        board.selectedPiece,
+        board.turn,
+        board.enPassantTarget,
+        board.status === "check"
+      );
+
+      // Double Check For Valid Moves
+      const isValidMove = pieceMoves.some((move) =>
         sameCoordinates(move, toPosition)
       );
       if (!isValidMove) return;
@@ -253,7 +159,13 @@ export function useBoard(
         };
       });
     },
-    [board.selectedPiece, validMoves, board.turn]
+    [
+      board.selectedPiece,
+      board.turn,
+      board.enPassantTarget,
+      board.pieces,
+      board.status,
+    ]
   );
 
   const promotePawn = useCallback(
@@ -297,6 +209,8 @@ export function useBoard(
   // Kings Checks
   useEffect(() => {
     setBoard((prev) => {
+      // const { pieces, enPassantTarget, status, turn } = prev;
+
       const myKing = findPiece(
         prev.pieces,
         (p) => p.color === prev.turn && p.type === "king"
@@ -304,13 +218,33 @@ export function useBoard(
 
       if (!myKing) throw Error(`${prev.turn} kings is missing`);
 
-      const checkOn = isCheckOn(prev.pieces, myKing)
+      const checkOn = isCheckOn(board.pieces, myKing)
         ? myKing.coordinates
         : undefined;
 
       // TODO check for checkmates
+      // This conditions needs to be a checkmate
+      // [1]: It's a check
+      // [2]: None of the pieces of the checked king have a valid move
       // if (checkOn) {
-
+      //   // const copiedPosition = new Map(pieces);
+      //   // const myPieces: PiecesMap = new Map();
+      //   for (const [, piece] of pieces) {
+      //     // if (piece.color === myKing.color) myPieces.set(key, piece);
+      //     if (piece.color === myKing.color) {
+      //       const pieceMoves = getPieceMoves(
+      //         pieces,
+      //         piece,
+      //         turn,
+      //         enPassantTarget,
+      //         status === "check"
+      //       );
+      //       // it's not a checkmate
+      //       if (pieceMoves.length !== 0) {
+      //         console.log("you have a valid move");
+      //       }
+      //     }
+      //   }
       // }
 
       // TODO check for stalemate
@@ -322,10 +256,19 @@ export function useBoard(
         kingInCheckPosition: checkOn,
       };
     });
-  }, [board.turn]);
+  }, [board.pieces]);
 
   return {
-    boardState: { ...board, validMoves }, // Need to re-reference moves array to apply highlight on it
+    boardState: {
+      ...board,
+      validMoves: getPieceMoves(
+        board.pieces,
+        board.selectedPiece,
+        board.turn,
+        board.enPassantTarget,
+        board.status === "check"
+      ),
+    }, // Need to re-reference moves array to apply highlight on it
     selectPiece,
     movePiece,
     promotePawn,

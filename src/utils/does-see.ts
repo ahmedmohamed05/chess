@@ -29,17 +29,6 @@ export default function pieceCanSee(
             }
             return false;
           }
-
-          // if (sameCoords) {
-          //   // Piece on the target square with same color => false
-          //   // Piece on the target square with other color => true
-          //   if (pieceOnSquare) {
-          //     const diffColor = pieceOnSquare.color !== piece.color;
-          //     return diffColor;
-          //   }
-          //   // No Piece on the target square => true
-          //   return true;
-          // }
         }
 
         return false;
