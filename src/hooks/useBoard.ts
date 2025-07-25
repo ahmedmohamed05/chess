@@ -3,6 +3,7 @@ import type {
   BoardState,
   Coordinates,
   GameController,
+  GameStatus,
   Move,
   Piece,
   PromotionOption,
@@ -209,7 +210,7 @@ export function useBoard(
   // Kings Checks
   useEffect(() => {
     setBoard((prev) => {
-      // const { pieces, enPassantTarget, status, turn } = prev;
+      const { pieces, enPassantTarget, status, turn } = prev;
 
       const myKing = findPiece(
         prev.pieces,
@@ -218,41 +219,39 @@ export function useBoard(
 
       if (!myKing) throw Error(`${prev.turn} kings is missing`);
 
-      const checkOn = isCheckOn(board.pieces, myKing)
+      const checkOn = isCheckOn(pieces, myKing)
         ? myKing.coordinates
         : undefined;
+      let newStatus: GameStatus = "playing";
 
-      // TODO check for checkmates
-      // This conditions needs to be a checkmate
-      // [1]: It's a check
-      // [2]: None of the pieces of the checked king have a valid move
-      // if (checkOn) {
-      //   // const copiedPosition = new Map(pieces);
-      //   // const myPieces: PiecesMap = new Map();
-      //   for (const [, piece] of pieces) {
-      //     // if (piece.color === myKing.color) myPieces.set(key, piece);
-      //     if (piece.color === myKing.color) {
-      //       const pieceMoves = getPieceMoves(
-      //         pieces,
-      //         piece,
-      //         turn,
-      //         enPassantTarget,
-      //         status === "check"
-      //       );
-      //       // it's not a checkmate
-      //       if (pieceMoves.length !== 0) {
-      //         console.log("you have a valid move");
-      //       }
-      //     }
-      //   }
-      // }
+      let hasAnyMoves = false;
+      for (const [, piece] of pieces) {
+        if (piece.color === myKing.color) {
+          const pieceMoves = getPieceMoves(
+            pieces,
+            piece,
+            turn,
+            enPassantTarget,
+            status === "check"
+          );
 
-      // TODO check for stalemate
+          if (pieceMoves.length !== 0) {
+            hasAnyMoves = false;
+            break;
+          }
+        }
+      }
+
+      if (!hasAnyMoves) {
+        if (checkOn) newStatus = "checkmate";
+        else newStatus = "stalemate";
+      }
+
       // TODO check for draws, (three times repetition, just kings, bishop and a king)
 
       return {
         ...prev,
-        status: checkOn ? "check" : "playing",
+        status: newStatus,
         kingInCheckPosition: checkOn,
       };
     });

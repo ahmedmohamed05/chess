@@ -10,8 +10,8 @@ export default function calculateValidMoves(
   pieces: PiecesMap,
   piece: Piece,
   turn: PieceColor,
-  enPassantTarget?: Coordinates,
-  isCheck?: boolean
+  isCheck: boolean,
+  enPassantTarget?: Coordinates
 ): Coordinates[] {
   if (turn !== piece.color) return [];
 
@@ -181,12 +181,14 @@ export default function calculateValidMoves(
       const rookMovements = calculateValidMoves(
         pieces,
         { ...piece, type: "rook" },
-        turn
+        turn,
+        isCheck
       );
       const bishopMovements = calculateValidMoves(
         pieces,
         { ...piece, type: "bishop" },
-        turn
+        turn,
+        isCheck
       );
       return [...rookMovements, ...bishopMovements];
     }
@@ -197,10 +199,10 @@ export default function calculateValidMoves(
         (move) => !pieces.get(coordinateToKey(move))
       );
 
+      if (isCheck) break;
+
       // If The King Moved
       if (piece.hasMoved) break;
-
-      if (isCheck) break;
 
       const opponentPieces: PiecesMap = new Map();
       for (const [key, piece] of pieces) {

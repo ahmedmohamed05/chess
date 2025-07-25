@@ -303,18 +303,6 @@ export default function Board({ controller }: BoardProps) {
     return boardState.history[length - 1];
   }, [boardState.history]);
 
-  // const checkSquare = useMemo(() => {
-  //   if (board.status !== "check") return;
-
-  //   const king = findPiece(
-  //     board.pieces,
-  //     (p) => p.color === board.turn && p.type === "king"
-  //   );
-
-  //   if (king) return king.coordinates;
-  //   return undefined;
-  // }, [board.status, board.pieces, board.turn]);
-
   return (
     <div
       className="board"

@@ -1,5 +1,6 @@
 import type { Coordinates, Piece, PieceColor, PiecesMap } from "../types";
 import calculateValidMoves from "./calculate-valid-moves";
+import isValidCoordinates from "./coordinates-range";
 import findPiece from "./find-piece";
 import isCheckOn from "./is-check";
 import { coordinateToKey } from "./key-coordinate-swap";
@@ -17,8 +18,9 @@ export default function getPieceMoves(
     pieces,
     piece,
     turn,
+    check,
     enPassantTarget
-  );
+  ).filter((move) => isValidCoordinates(move) && move);
 
   // King can't move into checks
   if (piece.type === "king") {
@@ -44,7 +46,6 @@ export default function getPieceMoves(
     return escapingMoves;
   }
 
-  // if (status === "check") {
   if (check) {
     // Copy everything to not effect the actual position
     const demoPieces = new Map(pieces);
@@ -88,17 +89,23 @@ export default function getPieceMoves(
   if (!king) throw Error(`${turn} king is missing`);
 
   possibleMoves.forEach((move) => {
-    const oldPiece: Piece = { ...piece };
-    demoPieces.delete(coordinateToKey(oldPiece.coordinates));
+    const moveKey = coordinateToKey(move);
+    const oldPieceVersion: Piece = { ...piece };
+    const oldPiece = demoPieces.get(moveKey);
+    demoPieces.delete(coordinateToKey(oldPieceVersion.coordinates));
     const newPiece: Piece = { ...piece, coordinates: move };
-    demoPieces.set(coordinateToKey(move), newPiece);
+    demoPieces.set(moveKey, newPiece);
 
     // If the move can blocks the check then push it
     if (!isCheckOn(demoPieces, king)) availableMoves.push(move);
 
     // return the piece to it's old coordinates
-    demoPieces.delete(coordinateToKey(move));
-    demoPieces.set(coordinateToKey(oldPiece.coordinates), oldPiece);
+    demoPieces.delete(moveKey);
+    demoPieces.set(
+      coordinateToKey(oldPieceVersion.coordinates),
+      oldPieceVersion
+    );
+    if (oldPiece) demoPieces.set(moveKey, oldPiece);
   });
   return availableMoves;
 }
