@@ -24,6 +24,8 @@ export default function getPieceMoves(
 
   // King can't move into checks
   if (piece.type === "king") {
+    console.log(possibleMoves);
+
     const demoPieces = new Map(pieces);
     const king = { ...piece };
     const escapingMoves: Coordinates[] = [];

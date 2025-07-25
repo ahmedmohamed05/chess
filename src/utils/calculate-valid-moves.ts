@@ -18,15 +18,6 @@ export default function calculateValidMoves(
   let moves: Coordinates[] = [];
   const { rank, file } = piece.coordinates;
 
-  const validMove = (to: Coordinates): boolean => {
-    if (!isValidCoordinates(to)) return false;
-
-    const p = pieces.get(coordinateToKey(to));
-    if (p && p.color === piece.color) return false;
-
-    return true;
-  };
-
   switch (piece.type) {
     case "pawn": {
       const isLight = piece.color === "light";
@@ -81,8 +72,15 @@ export default function calculateValidMoves(
 
     case "knight": {
       // Get All Possible Moves And Filter Them
-      moves = getAllPossibleMoves("knight", piece.coordinates).filter((move) =>
-        validMove(move)
+      moves = getAllPossibleMoves("knight", piece.coordinates).filter(
+        (move) => {
+          if (isValidCoordinates(move)) {
+            const pieceOnTarget = pieces.get(coordinateToKey(move));
+            if (pieceOnTarget) {
+              if (pieceOnTarget.color !== turn) return move;
+            } else return move;
+          }
+        }
       );
       break;
     }
@@ -195,9 +193,14 @@ export default function calculateValidMoves(
 
     case "king": {
       // Add All Possible Moves
-      moves = getAllPossibleMoves("king", piece.coordinates).filter(
-        (move) => !pieces.get(coordinateToKey(move))
-      );
+      moves = getAllPossibleMoves("king", piece.coordinates).filter((move) => {
+        if (isValidCoordinates(move)) {
+          const pieceOnTarget = pieces.get(coordinateToKey(move));
+          if (pieceOnTarget) {
+            if (pieceOnTarget.color !== turn) return move;
+          } else return move;
+        }
+      });
 
       if (isCheck) break;
 

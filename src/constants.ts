@@ -102,10 +102,10 @@ export const INIT_BOARD_STATE: BoardState = {
   selectedPiece: null,
   status: "playing",
   turn: "light",
-  moves: [],
   history: [],
-  castling: false,
+  validMoves: [],
+  castlingAvailable: false,
   enPassantTarget: undefined,
   promotionPending: false,
-  checkOn: undefined,
+  kingInCheckPosition: undefined,
 };
