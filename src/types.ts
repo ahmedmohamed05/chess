@@ -30,6 +30,7 @@ export interface Move {
   from: Coordinates;
   to: Coordinates;
   piece: Piece;
+  isCheck: boolean;
   captured?: Piece;
   castle?: "short" | "long";
   promotion?: PromotionOption;
