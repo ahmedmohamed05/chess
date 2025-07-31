@@ -9,7 +9,6 @@ export interface HistoryProps {
 }
 
 function History({ movesHistory, goToMoveHandler }: HistoryProps) {
-  console.log("re-rending");
   return (
     <div className="game-history text-white flex flex-col bg-gray-700 py-4 px-5 border border-white rounded">
       <p className="title pb-5 font-bold">Moves History</p>
@@ -20,12 +19,7 @@ function History({ movesHistory, goToMoveHandler }: HistoryProps) {
           <ul>
             {movesHistory.map((move, i) => {
               return (
-                <li
-                  className="cursor-pointer"
-                  key={
-                    coordinateToKey(move.from) + movesHistory.length.toString()
-                  }
-                >
+                <li className="cursor-pointer" key={i}>
                   {i + 1}. {getMoveName(move)}
                 </li>
               );
@@ -100,6 +94,7 @@ function getMoveName(move: Move) {
     case "bishop":
     case "knight":
   }
+  if (move.isCheck) moveText += "+";
   return moveText;
 }
 

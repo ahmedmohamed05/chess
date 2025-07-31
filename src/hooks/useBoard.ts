@@ -3,6 +3,7 @@ import type {
   BoardState,
   Coordinates,
   GameController,
+  GameStatus,
   Move,
   Piece,
   PromotionOption,
@@ -11,6 +12,8 @@ import { INIT_BOARD_STATE } from "../constants";
 import sameCoordinates from "../utils/check-coordinates";
 import { coordinateToKey } from "../utils/key-coordinate-swap";
 import getPieceMoves from "../utils/get-piece-moves";
+import isCheckOn from "../utils/is-check";
+import findPiece from "../utils/find-piece";
 
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
@@ -38,77 +41,6 @@ export function useBoard(
     },
     [board.turn]
   );
-
-  // FIXME: same problem with the king we have to separate the demo actually
-  const checkGameStatus = useCallback(() => {
-    console.log(board.history);
-
-    // setBoard((prev) => {
-    //   const { pieces, enPassantTarget, status, turn, history } = prev;
-
-    //   const myKing = findPiece(
-    //     pieces,
-    //     (p) => p.color === turn && p.type === "king"
-    //   );
-
-    //   if (!myKing) throw Error(`${turn} kings is missing`);
-
-    //   const isCheck = isCheckOn(pieces, myKing)
-    //     ? myKing.coordinates
-    //     : undefined;
-
-    //   let newStatus: GameStatus = "playing";
-
-    //   let hasAnyMoves = false;
-    //   for (const [, piece] of pieces) {
-    //     if (piece.color === myKing.color) {
-    //       const pieceMoves = getPieceMoves(
-    //         pieces,
-    //         piece,
-    //         turn,
-    //         enPassantTarget,
-    //         status === "check"
-    //       );
-
-    //       if (pieceMoves.length !== 0) {
-    //         hasAnyMoves = true;
-    //         break;
-    //       }
-    //     }
-    //   }
-
-    //   if (!hasAnyMoves) {
-    //     if (isCheck) newStatus = "checkmate";
-    //     else newStatus = "stalemate";
-    //   }
-
-    //   // Draw Only Kings left
-    //   else if (pieces.size === 2) {
-    //     const opponentKing = findPiece(
-    //       pieces,
-    //       (p) => p.color !== turn && p.type === "king"
-    //     );
-    //     if (!opponentKing)
-    //       throw Error(`${turn == "light" ? "Light" : "Dark"} kings is missing`);
-
-    //     newStatus = "draw";
-    //   }
-
-    //   // TODO check for draws, (three times repetition, just kings, bishop and a king)
-
-    //   const historyLength = history.length;
-    //   if (historyLength > 1) {
-    //     const lastMove = history[historyLength - 1];
-    //     lastMove.isCheck = isCheck !== undefined;
-    //   }
-
-    //   return {
-    //     ...prev,
-    //     status: newStatus,
-    //     kingInCheckPosition: isCheck,
-    //   };
-    // });
-  }, [board.history]);
 
   const movePiece = useCallback(
     (toPosition: Coordinates) => {
@@ -223,6 +155,16 @@ export function useBoard(
           hasMoved: true,
         });
 
+        const opponentColor = prev.turn === "light" ? "dark" : "light";
+        const opponentKing = findPiece(
+          newPieces,
+          (p) => p.color === opponentColor && p.type === "king"
+        );
+        if (!opponentKing) throw Error(`${opponentColor} King is missing`);
+        const isCheckAfterMove = isCheckOn(newPieces, opponentKing);
+
+        move.isCheck = isCheckAfterMove;
+
         return {
           ...prev,
           pieces: newPieces,
@@ -263,9 +205,20 @@ export function useBoard(
           type: promoteTo,
         });
 
+        // 🔑 Check opponent's king AFTER promotion
+        const opponentColor = prev.turn === "light" ? "dark" : "light";
+        const opponentKing = findPiece(
+          newPieces,
+          (p) => p.color === opponentColor && p.type === "king"
+        );
+        const isCheckAfterPromotion = opponentKing
+          ? isCheckOn(newPieces, opponentKing)
+          : undefined;
+
         const move: Move = {
           ...lastMove,
           promotion: promoteTo,
+          isCheck: isCheckAfterPromotion !== undefined,
         };
 
         return {
@@ -282,81 +235,64 @@ export function useBoard(
     [board.promotionPending, board.history]
   );
 
-  useEffect(() => {
-    // console.log(board.history);
-    // checkGameStatus();
-  }, [board.history]);
-
   // Game Status Checks
-  // useEffect(() => {
-  //   setBoard((prev) => {
-  //     const { pieces, enPassantTarget, status, turn, history } = prev;
+  useEffect(() => {
+    const pieces = board.pieces;
+    const enPassantTarget = board.enPassantTarget;
+    const status = board.status;
+    const turn = board.turn;
 
-  //     const myKing = findPiece(
-  //       pieces,
-  //       (p) => p.color === turn && p.type === "king"
-  //     );
+    const myKing = findPiece(
+      pieces,
+      (p) => p.color === turn && p.type === "king"
+    );
+    if (!myKing) throw Error(`${turn} kings is missing`);
 
-  //     if (!myKing) throw Error(`${turn} kings is missing`);
+    const isCheck = isCheckOn(board.pieces, myKing)
+      ? myKing.coordinates
+      : undefined;
 
-  //     const isCheck = isCheckOn(pieces, myKing)
-  //       ? myKing.coordinates
-  //       : undefined;
+    let newStatus: GameStatus = "playing";
+    let hasAnyMoves = false;
+    for (const [, piece] of pieces) {
+      if (piece.color === myKing.color) {
+        const pieceMoves = getPieceMoves(
+          pieces,
+          piece,
+          turn,
+          enPassantTarget,
+          status === "check"
+        );
+        if (pieceMoves.length !== 0) {
+          hasAnyMoves = true;
+          break;
+        }
+      }
+    }
+    if (!hasAnyMoves) {
+      if (isCheck) newStatus = "checkmate";
+      else newStatus = "stalemate";
+    }
+    // TODO check for draws, (three times repetition, just kings, bishop and a king)
+    // Draw Only Kings left
+    else if (pieces.size === 2) {
+      const opponentKing = findPiece(
+        pieces,
+        (p) => p.color !== turn && p.type === "king"
+      );
+      if (!opponentKing)
+        throw Error(`${turn == "light" ? "Light" : "Dark"} kings is missing`);
+      newStatus = "draw";
+    }
 
-  //     let newStatus: GameStatus = "playing";
-
-  //     let hasAnyMoves = false;
-  //     for (const [, piece] of pieces) {
-  //       if (piece.color === myKing.color) {
-  //         const pieceMoves = getPieceMoves(
-  //           pieces,
-  //           piece,
-  //           turn,
-  //           enPassantTarget,
-  //           status === "check"
-  //         );
-
-  //         if (pieceMoves.length !== 0) {
-  //           hasAnyMoves = true;
-  //           break;
-  //         }
-  //       }
-  //     }
-
-  //     if (!hasAnyMoves) {
-  //       if (isCheck) newStatus = "checkmate";
-  //       else newStatus = "stalemate";
-  //     }
-
-  //     // Draw Only Kings left
-  //     else if (pieces.size === 2) {
-  //       const opponentKing = findPiece(
-  //         pieces,
-  //         (p) => p.color !== turn && p.type === "king"
-  //       );
-  //       if (!opponentKing)
-  //         throw Error(`${turn == "light" ? "Light" : "Dark"} kings is missing`);
-
-  //       newStatus = "draw";
-  //     }
-
-  //     // TODO check for draws, (three times repetition, just kings, bishop and a king)
-
-  //     const historyLength = history.length;
-  //     if (historyLength > 1) {
-  //       const lastMove = history[historyLength - 1];
-  //       lastMove.isCheck = isCheck !== undefined;
-  //     }
-
-  //     return {
-  //       ...prev,
-  //       status: newStatus,
-  //       kingInCheckPosition: isCheck,
-  //     };
-  //   });
-  // }, [board.pieces]);
-
-  // useEffect(() => {}, [board.turn]);
+    setBoard((prev) => {
+      return {
+        ...prev,
+        status: newStatus,
+        kingInCheckPosition: isCheck,
+      };
+    });
+  }, [board.pieces, board.enPassantTarget, board.status, board.turn]);
 
   return {
     boardState: {
