@@ -1,7 +1,6 @@
 import { memo } from "react";
 import type { Move } from "../types";
-import { coordinateToKey } from "../utils/key-coordinate-swap";
-import { getFileLetter } from "../utils/square-letter";
+import getMoveName from "../utils/get-move-name";
 
 export interface HistoryProps {
   movesHistory: Move[];
@@ -50,52 +49,6 @@ function ChangeMoveButton({ direction, clickHandler }: ChangeMoveButtonProps) {
       {direction}
     </button>
   );
-}
-
-function getMoveName(move: Move) {
-  const { from, to, piece } = move;
-  const fileLetter = getFileLetter(to.file);
-  let moveText = coordinateToKey(to) as string;
-  switch (piece.type) {
-    case "pawn": {
-      const normalPawnMove = fileLetter + to.rank;
-      // eg. dxe5
-      if (move.captured) {
-        moveText = getFileLetter(from.file) + "x" + normalPawnMove;
-      }
-      // eg. a8=Q
-      else if (move.promotion) {
-        return normalPawnMove + "=" + move.promotion[0].toUpperCase();
-      }
-      // eg. e4
-      else moveText = normalPawnMove;
-
-      break;
-    }
-
-    case "king": {
-      const normalKingMove = "k" + fileLetter + to.rank;
-      moveText = normalKingMove;
-
-      // eg. kxd3
-      if (move.captured) {
-        moveText = "kx" + fileLetter + to.rank;
-      }
-      // eg. O-O Or O-O-O
-      else if (move.castle) {
-        moveText = "O-O";
-        if (move.castle === "long") moveText += "-O";
-        break;
-      }
-      break;
-    }
-    case "queen":
-    case "rook":
-    case "bishop":
-    case "knight":
-  }
-  if (move.isCheck) moveText += "+";
-  return moveText;
 }
 
 export default memo(History);

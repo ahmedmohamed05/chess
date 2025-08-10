@@ -31,6 +31,8 @@ export interface Move {
   to: Coordinates;
   piece: Piece;
   isCheck: boolean;
+  includeFromFile: boolean;
+  includeFromRank: boolean;
   captured?: Piece;
   castle?: "short" | "long";
   promotion?: PromotionOption;

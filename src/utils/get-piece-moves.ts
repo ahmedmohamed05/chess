@@ -24,8 +24,6 @@ export default function getPieceMoves(
 
   // King can't move into checks
   if (piece.type === "king") {
-    console.log(possibleMoves);
-
     const demoPieces = new Map(pieces);
     const king = { ...piece };
     const escapingMoves: Coordinates[] = [];
@@ -34,6 +32,7 @@ export default function getPieceMoves(
     possibleMoves.forEach((move) => {
       const demoMoveKey = coordinateToKey(move);
       const demoKingPiece = { ...king, coordinates: move };
+      const oldPiece = demoPieces.get(demoMoveKey);
 
       demoPieces.delete(originalKingKey);
       demoPieces.set(demoMoveKey, demoKingPiece);
@@ -44,33 +43,39 @@ export default function getPieceMoves(
 
       demoPieces.delete(demoMoveKey);
       demoPieces.set(originalKingKey, king);
+      if (oldPiece) demoPieces.set(demoMoveKey, oldPiece);
     });
     return escapingMoves;
   }
+
+  const king = findPiece(pieces, (p) => p.type === "king" && p.color === turn);
+
+  if (!king) throw Error(`${turn} king is missing`);
 
   if (check) {
     // Copy everything to not effect the actual position
     const demoPieces = new Map(pieces);
     const blockingMoves: Coordinates[] = [];
-    const king = findPiece(
-      demoPieces,
-      (p) => p.type === "king" && p.color === turn
-    );
-
-    if (!king) throw Error(`${turn} king is missing`);
 
     // simulate moving the piece to check if it can blocks the 'check'
     possibleMoves.forEach((move) => {
       const demoMoveKey = coordinateToKey(move);
-      // copy the piece to re-put it to it's old position, simulating capturing
+
+      // Copy the piece to re-put it to it's old position, simulating capturing
       const oldPiece = demoPieces.get(demoMoveKey);
+
+      // Pick up the piece from the old position
       demoPieces.delete(coordinateToKey(piece.coordinates));
+      // Put it down on the new position
       demoPieces.set(demoMoveKey, { ...piece, coordinates: move });
 
       // If the move can blocks the check then push it
-      if (!isCheckOn(demoPieces, king)) blockingMoves.push(move);
+      if (!isCheckOn(demoPieces, king)) {
+        blockingMoves.push(move);
+        console.log(demoPieces, move);
+      }
 
-      // return the piece to it's old coordinates
+      // Return the piece to it's old coordinates
       demoPieces.delete(demoMoveKey);
       demoPieces.set(coordinateToKey(piece.coordinates), piece);
       if (oldPiece) demoPieces.set(demoMoveKey, oldPiece);
@@ -82,13 +87,6 @@ export default function getPieceMoves(
   // Check for pinned pieces
   const demoPieces = new Map(pieces);
   const availableMoves: Coordinates[] = [];
-
-  const king = findPiece(
-    demoPieces,
-    (p) => p.type === "king" && p.color === turn
-  );
-
-  if (!king) throw Error(`${turn} king is missing`);
 
   possibleMoves.forEach((move) => {
     const moveKey = coordinateToKey(move);
