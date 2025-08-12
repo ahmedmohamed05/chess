@@ -1,4 +1,4 @@
-import type { PromotionOptions, SquareColor } from "../types";
+import type { PromotionOption, SquareColor } from "../types";
 import PromotionOps from "./PromotionOps";
 
 export interface SquareProps {
@@ -7,7 +7,7 @@ export interface SquareProps {
   rank: number;
   file: number;
   showPromotionOptions: boolean;
-  promoteHandler: (promoteTo: PromotionOptions) => void;
+  promoteHandler: (promoteTo: PromotionOption) => void;
 }
 
 export default function Square({

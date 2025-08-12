@@ -1,9 +1,9 @@
+// useBoard.ts
 import { useCallback, useEffect, useState } from "react";
 import type {
   BoardState,
   Coordinates,
   GameController,
-  GameStatus,
   Move,
   Piece,
   PromotionOption,
@@ -14,31 +14,34 @@ import { coordinateToKey } from "../utils/key-coordinate-swap";
 import getPieceMoves from "../utils/get-piece-moves";
 import isCheckOn from "../utils/is-check";
 import findPiece from "../utils/find-piece";
+import getDisambiguation from "./helpers/get-disambiguation";
+import handleEnPassant from "./helpers/handle-enpassant";
+import handleCastling from "./helpers/handle-castling";
+import getOpponentColor from "./helpers/get-opponent-color";
+import evaluateGameStatus from "./helpers/evaluate-game-status";
+import getFEN from "./helpers/fen";
 
-// TODO: Refactor this before it gets worse
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
 ): GameController {
   const [board, setBoard] = useState<BoardState>(initBoard);
+  const [fenRecords, setFenRecords] = useState<string[]>([]);
 
   const selectPiece = useCallback(
     (piece: Piece | null) => {
-      // Prevent selecting opponent's pieces
       if (piece && piece.color !== board.turn) return;
 
-      setBoard((prev) => {
-        return {
-          ...prev,
-          selectedPiece: piece,
-          moves: getPieceMoves(
-            prev.pieces,
-            piece,
-            prev.turn,
-            prev.enPassantTarget,
-            prev.status === "check"
-          ),
-        };
-      });
+      setBoard((prev) => ({
+        ...prev,
+        selectedPiece: piece,
+        moves: getPieceMoves(
+          prev.pieces,
+          piece,
+          prev.turn,
+          prev.enPassantTarget,
+          prev.status === "check"
+        ),
+      }));
     },
     [board.turn]
   );
@@ -46,14 +49,10 @@ export function useBoard(
   const movePiece = useCallback(
     (toPosition: Coordinates) => {
       if (!board.selectedPiece) return;
-      const currentPiece = board.selectedPiece!;
+      const currentPiece = board.selectedPiece;
       if (currentPiece.color !== board.turn) return;
 
-      const pieces = board.pieces;
-      const turn = board.turn;
-      const enPassantTarget = board.enPassantTarget;
-      const status = board.status;
-
+      const { pieces, turn, enPassantTarget, status } = board;
       const pieceMoves = getPieceMoves(
         pieces,
         currentPiece,
@@ -62,155 +61,57 @@ export function useBoard(
         status === "check"
       );
 
-      // Double Check For Valid Moves
-      const isValidMove = pieceMoves.some((move) =>
-        sameCoordinates(move, toPosition)
-      );
-      if (!isValidMove) return;
-
-      const fromPosition = currentPiece.coordinates;
-
-      // Prevent Moving The Same Square
-      if (sameCoordinates(fromPosition, toPosition)) return;
+      if (
+        !pieceMoves.some((move) => sameCoordinates(move, toPosition)) ||
+        sameCoordinates(currentPiece.coordinates, toPosition)
+      ) {
+        return;
+      }
 
       setBoard((prev) => {
         const newPieces = new Map(prev.pieces);
         let capturedPiece = newPieces.get(coordinateToKey(toPosition));
 
-        // No need to check pawn we already included that, And there is only one king on the board
-        let includeFromFile = false;
-        let includeFromRank = false;
-        if (currentPiece.type !== "king" && currentPiece.type !== "pawn") {
-          for (const [, piece] of pieces) {
-            // same color but not the same piece
-            if (
-              piece.color === turn &&
-              !sameCoordinates(currentPiece.coordinates, piece.coordinates)
-            ) {
-              if (piece.type === currentPiece.type) {
-                const pieceMoves = getPieceMoves(
-                  pieces,
-                  piece,
-                  turn,
-                  board.enPassantTarget,
-                  status === "check"
-                );
-                let exit = false;
-                // loop through piece moves and check them
-                for (const pieceMove of pieceMoves) {
-                  if (sameCoordinates(pieceMove, toPosition)) {
-                    includeFromFile = true;
-                    includeFromRank = true;
+        const fromPosition = currentPiece.coordinates;
+        const { includeFromFile, includeFromRank } = getDisambiguation(
+          pieces,
+          currentPiece,
+          toPosition,
+          turn,
+          enPassantTarget,
+          status
+        );
 
-                    exit = true;
-                    // TODO: make the starting coordinates better
-                    // same rank => include file letter
-                    // if (
-                    //   currentPiece.coordinates.rank ===
-                    //     piece.coordinates.rank &&
-                    //   currentPiece.coordinates.file !== piece.coordinates.file
-                    // ) {
-                    //   includeFromFile = true;
-                    // }
-
-                    // same file => include rank
-                    // if (
-                    //   currentPiece.coordinates.file ===
-                    //     piece.coordinates.file &&
-                    //   currentPiece.coordinates.rank !== piece.coordinates.rank
-                    // ) {
-                    //   includeFromRank = true;
-                    // }
-
-                    if (exit) break;
-                  }
-                }
-                // no need to check other pieces if one piece satisfy the condition
-                if (exit) break;
-              }
-            }
-          }
-        }
-
-        const move: Move = {
-          piece: currentPiece,
-          from: fromPosition,
-          to: toPosition,
-          captured: capturedPiece,
-          isCheck: false,
-          includeFromFile,
-          includeFromRank,
-        };
-
-        // Special Moves (En Passant, Castling and Promotion)
-
-        // Setting En Passant Target
-        const enPassantTarget =
-          currentPiece.type === "pawn" &&
-          Math.abs(fromPosition.rank - toPosition.rank) === 2
-            ? ({
-                rank: (fromPosition.rank + toPosition.rank) / 2,
-                file: fromPosition.file,
-              } as Coordinates)
-            : undefined;
-
-        const isEnPassant =
-          currentPiece.type === "pawn" &&
-          prev.enPassantTarget &&
-          sameCoordinates(prev.enPassantTarget, toPosition);
-
-        if (isEnPassant) {
-          // It's not undefined because it's can move
-          const pawn = newPieces.get(coordinateToKey(fromPosition))!;
-
-          // Deleting the old one and setting new one with new coordinates
-          newPieces.delete(coordinateToKey(pawn.coordinates));
-          newPieces.set(coordinateToKey(toPosition), {
-            ...pawn,
-            coordinates: toPosition,
-          });
-
-          const capturedPawnCoordinates =
-            prev.history[prev.history.length - 1].to; // En-Passant Must Apply On The Last Pawn Move
-
-          capturedPiece = newPieces.get(
-            coordinateToKey(capturedPawnCoordinates)
+        // En Passant
+        capturedPiece =
+          capturedPiece ||
+          handleEnPassant(
+            newPieces,
+            currentPiece,
+            fromPosition,
+            toPosition,
+            prev
           );
-        }
 
-        const isCastling =
-          currentPiece.type === "king" &&
-          Math.abs(fromPosition.file - toPosition.file) === 2; // Two squares King Move Means Castling
-        if (isCastling) {
-          move.castle = toPosition.file > fromPosition.file ? "short" : "long";
-          const rookRank = currentPiece.color === "light" ? 1 : 8;
-          const rookFile = move.castle === "short" ? 8 : 1;
-          const rookCoords: Coordinates = { rank: rookRank, file: rookFile };
-          const newRookFile = move.castle === "short" ? 6 : 4;
+        // Castling
+        const castle = handleCastling(
+          newPieces,
+          currentPiece,
+          fromPosition,
+          toPosition
+        );
 
-          const rook = newPieces.get(coordinateToKey(rookCoords));
-          if (rook && rook.type == "rook") {
-            newPieces.delete(coordinateToKey(rookCoords));
-            newPieces.set(
-              coordinateToKey({ rank: rookRank, file: newRookFile }),
-              {
-                ...rook,
-                coordinates: { rank: rookRank, file: newRookFile },
-                hasMoved: true,
-              }
-            );
-          }
-        }
-
-        // Remove Captured Piece If Exist
-        if (capturedPiece)
+        // Remove captured piece
+        if (capturedPiece) {
           newPieces.delete(coordinateToKey(capturedPiece.coordinates));
+        }
 
+        // Promotion
         const isPromotion =
           currentPiece.type === "pawn" &&
           (toPosition.rank === 1 || toPosition.rank === 8);
 
-        // Moving Actual Piece
+        // Move piece
         newPieces.delete(coordinateToKey(fromPosition));
         newPieces.set(coordinateToKey(toPosition), {
           ...currentPiece,
@@ -218,69 +119,75 @@ export function useBoard(
           hasMoved: true,
         });
 
-        const opponentColor = prev.turn === "light" ? "dark" : "light";
+        // Check if move causes check
         const opponentKing = findPiece(
           newPieces,
-          (p) => p.color === opponentColor && p.type === "king"
+          (p) => p.color === getOpponentColor(turn) && p.type === "king"
         );
-        if (!opponentKing) throw Error(`${opponentColor} King is missing`);
+        if (!opponentKing)
+          throw Error(`${getOpponentColor(turn)} king is missing`);
 
-        move.isCheck = isCheckOn(newPieces, opponentKing);
+        const move: Move = {
+          piece: currentPiece,
+          from: fromPosition,
+          to: toPosition,
+          captured: capturedPiece,
+          isCheck: isCheckOn(newPieces, opponentKing),
+          includeFromFile,
+          includeFromRank,
+          castle,
+        };
 
         return {
           ...prev,
           pieces: newPieces,
-          turn: prev.turn === "light" ? "dark" : "light",
+          turn: getOpponentColor(prev.turn),
           history: [...prev.history, move],
           moves: [],
           selectedPiece: null,
-          enPassantTarget,
+          enPassantTarget:
+            currentPiece.type === "pawn" &&
+            Math.abs(fromPosition.rank - toPosition.rank) === 2
+              ? {
+                  rank: (fromPosition.rank + toPosition.rank) / 2,
+                  file: fromPosition.file,
+                }
+              : undefined,
           promotionPending: isPromotion,
         };
       });
     },
-    [
-      board.selectedPiece,
-      board.turn,
-      board.enPassantTarget,
-      board.pieces,
-      board.status,
-    ]
+    [board]
   );
 
   const promotePawn = useCallback(
     (promoteTo: PromotionOption) => {
-      if (!board.promotionPending) return;
-      if (board.history.length === 0) return;
+      if (!board.promotionPending || board.history.length === 0) return;
 
-      const lastMove = board.history.pop()!; // we check the array is not empty
-      const pawn = lastMove.piece;
-      if (pawn.type !== "pawn") return;
+      const lastMove = board.history.pop()!;
+      if (lastMove.piece.type !== "pawn") return;
 
       setBoard((prev) => {
         const newPieces = new Map(prev.pieces);
-
-        // Overwrite The Pawn From The Board
         newPieces.set(coordinateToKey(lastMove.to), {
-          ...pawn,
+          ...lastMove.piece,
           coordinates: lastMove.to,
           type: promoteTo,
         });
 
-        // 🔑 Check opponent's king AFTER promotion
-        const opponentColor = prev.turn === "light" ? "dark" : "light";
         const opponentKing = findPiece(
           newPieces,
-          (p) => p.color === opponentColor && p.type === "king"
+          (p) => p.color === getOpponentColor(prev.turn) && p.type === "king"
         );
+
         const isCheckAfterPromotion = opponentKing
           ? isCheckOn(newPieces, opponentKing)
-          : undefined;
+          : false;
 
         const move: Move = {
           ...lastMove,
           promotion: promoteTo,
-          isCheck: isCheckAfterPromotion !== undefined,
+          isCheck: isCheckAfterPromotion,
         };
 
         return {
@@ -297,65 +204,29 @@ export function useBoard(
     [board.promotionPending, board.history]
   );
 
-  // Game Status Checks
+  // Evaluate game status on changes
   useEffect(() => {
-    const pieces = board.pieces;
-    const enPassantTarget = board.enPassantTarget;
-    const status = board.status;
-    const turn = board.turn;
-
-    const myKing = findPiece(
-      pieces,
-      (p) => p.color === turn && p.type === "king"
-    );
-    if (!myKing) throw Error(`${turn} kings is missing`);
-
-    const isCheck = isCheckOn(board.pieces, myKing)
-      ? myKing.coordinates
-      : undefined;
-
-    let newStatus: GameStatus = "playing";
-    let hasAnyMoves = false;
-    for (const [, piece] of pieces) {
-      if (piece.color === myKing.color) {
-        const pieceMoves = getPieceMoves(
-          pieces,
-          piece,
-          turn,
-          enPassantTarget,
-          status === "check"
-        );
-        if (pieceMoves.length !== 0) {
-          hasAnyMoves = true;
-          break;
-        }
-      }
-    }
-    if (!hasAnyMoves) {
-      if (isCheck) newStatus = "checkmate";
-      else newStatus = "stalemate";
-    }
-    // TODO check for draws, (three times repetition, just kings, bishop and a king)
-    // Draw Only Kings left
-    else if (pieces.size === 2) {
-      const opponentKing = findPiece(
-        pieces,
-        (p) => p.color !== turn && p.type === "king"
-      );
-      if (!opponentKing)
-        throw Error(`${turn == "light" ? "Light" : "Dark"} kings is missing`);
-      newStatus = "draw";
-    }
-    if (isCheck) newStatus = "check";
-
     setBoard((prev) => {
-      return {
-        ...prev,
-        status: newStatus,
-        kingInCheckPosition: isCheck,
-      };
+      const { status, kingInCheckPosition } = evaluateGameStatus(prev);
+      return { ...prev, status, kingInCheckPosition };
     });
   }, [board.pieces, board.enPassantTarget, board.status, board.turn]);
+
+  useEffect(() => {
+    const fen = getFEN(board.pieces, board.turn, board.enPassantTarget);
+    setFenRecords((prev) => {
+      const newMap = new Map(prev);
+      const oldFen = newMap.get(fen);
+
+      if (oldFen) newMap.set(fen, oldFen + 1);
+      else newMap.set(fen, 1);
+      return newMap;
+    });
+  }, [board.pieces, board.turn, board.enPassantTarget]);
+
+  useEffect(() => {
+    if (fenRecords.size === 0) return;
+  }, [fenRecords]);
 
   return {
     boardState: {
@@ -367,7 +238,7 @@ export function useBoard(
         board.enPassantTarget,
         board.status === "check"
       ),
-    }, // Need to re-reference moves array to apply highlight on it
+    },
     selectPiece,
     movePiece,
     promotePawn,

@@ -1,16 +1,16 @@
-import type { PieceColor, PromotionOptions } from "../types";
+import type { PieceColor, PromotionOption } from "../types";
 import PromotionSpan from "./PromotionSpan";
 
 export interface PromotionOpsProps {
   color: PieceColor;
-  promoteHandler: (promoteTo: PromotionOptions) => void;
+  promoteHandler: (promoteTo: PromotionOption) => void;
 }
 
 export default function PromotionOps({
   color,
   promoteHandler,
 }: PromotionOpsProps) {
-  const opts: PromotionOptions[] = ["queen", "rook", "bishop", "knight"];
+  const opts: PromotionOption[] = ["queen", "rook", "bishop", "knight"];
   const out = [];
   for (const op of opts) {
     out.push(

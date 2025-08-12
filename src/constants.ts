@@ -108,4 +108,5 @@ export const INIT_BOARD_STATE: BoardState = {
   enPassantTarget: undefined,
   promotionPending: false,
   kingInCheckPosition: undefined,
+  positionRecord: new Map(),
 };

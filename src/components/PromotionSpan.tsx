@@ -1,11 +1,11 @@
 import { type MouseEvent, type TouchEvent } from "react";
-import type { PieceColor, PromotionOptions } from "../types";
+import type { PieceColor, PromotionOption } from "../types";
 import getPieceIcon from "../utils/get-piece-icon";
 
 export interface PromotionSpanProps {
   color: PieceColor;
-  type: PromotionOptions;
-  promoteHandler: (type: PromotionOptions) => void;
+  type: PromotionOption;
+  promoteHandler: (type: PromotionOption) => void;
 }
 
 export default function PromotionSpan({
@@ -15,13 +15,13 @@ export default function PromotionSpan({
 }: PromotionSpanProps) {
   const clickHandler = (e: MouseEvent<HTMLSpanElement>) => {
     const span = (e.target as HTMLSpanElement).parentElement!;
-    const type = span.dataset.type as PromotionOptions;
+    const type = span.dataset.type as PromotionOption;
     promoteHandler(type);
   };
 
   const touchHandler = (e: TouchEvent<HTMLSpanElement>) => {
     const span = (e.target as HTMLSpanElement).parentElement!;
-    const type = span.dataset.type as PromotionOptions;
+    const type = span.dataset.type as PromotionOption;
     promoteHandler(type);
   };
 

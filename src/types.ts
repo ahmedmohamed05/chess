@@ -59,6 +59,7 @@ export interface BoardState {
   castlingAvailable: boolean | undefined;
   promotionPending: boolean;
   kingInCheckPosition: Coordinates | undefined;
+  positionRecord: Map<string, number>;
 }
 
 export interface GameController {

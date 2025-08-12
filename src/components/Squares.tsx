@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { FILES, RANKS } from "../constants";
-import type { Coordinates, Move, PiecesMap, PromotionOptions } from "../types";
+import type { Coordinates, Move, PiecesMap, PromotionOption } from "../types";
 import sameCoordinates from "../utils/check-coordinates";
 import getPieceIcon from "../utils/get-piece-icon";
 import getColor from "../utils/get-square-color";
@@ -13,7 +13,7 @@ export interface SquaresProps {
   highlight: Coordinates[];
   lastMove?: Move;
   promotion?: Coordinates;
-  promoteHandler: (promoteTo: PromotionOptions) => void;
+  promoteHandler: (promoteTo: PromotionOption) => void;
   check?: Coordinates;
 }
 

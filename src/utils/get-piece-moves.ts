@@ -70,10 +70,7 @@ export default function getPieceMoves(
       demoPieces.set(demoMoveKey, { ...piece, coordinates: move });
 
       // If the move can blocks the check then push it
-      if (!isCheckOn(demoPieces, king)) {
-        blockingMoves.push(move);
-        console.log(demoPieces, move);
-      }
+      if (!isCheckOn(demoPieces, king)) blockingMoves.push(move);
 
       // Return the piece to it's old coordinates
       demoPieces.delete(demoMoveKey);

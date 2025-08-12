@@ -11,7 +11,7 @@ function History({ movesHistory, goToMoveHandler }: HistoryProps) {
   return (
     <div className="game-history text-white flex flex-col bg-gray-700 py-4 px-5 border border-white rounded">
       <p className="title pb-5 font-bold">Moves History</p>
-      <div className="moves-history h-full">
+      <div className="moves-history h-full max-h-full overflow-y-auto">
         {movesHistory.length === 0 ? (
           <p>Play A Move</p>
         ) : (
