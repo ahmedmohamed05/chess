@@ -1,5 +1,5 @@
 // useBoard.ts
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   BoardState,
   Coordinates,
@@ -25,7 +25,9 @@ export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
 ): GameController {
   const [board, setBoard] = useState<BoardState>(initBoard);
-  const [fenRecords, setFenRecords] = useState<string[]>([]);
+  const [fenRecords, setFenRecords] = useState<
+    { fen: string; times: number }[]
+  >([]);
 
   const selectPiece = useCallback(
     (piece: Piece | null) => {
@@ -213,20 +215,29 @@ export function useBoard(
   }, [board.pieces, board.enPassantTarget, board.status, board.turn]);
 
   useEffect(() => {
-    const fen = getFEN(board.pieces, board.turn, board.enPassantTarget);
+    if (!board.history.length) return;
+
+    const fen = getFEN(
+      board.pieces,
+      board.turn,
+      board.enPassantTarget,
+      board.history.length
+    );
+    console.log(fen);
     setFenRecords((prev) => {
-      const newMap = new Map(prev);
-      const oldFen = newMap.get(fen);
+      for (const { fen: record } of prev) {
+        if (record === fen) {
+          console.log("found match");
+        }
+      }
 
-      if (oldFen) newMap.set(fen, oldFen + 1);
-      else newMap.set(fen, 1);
-      return newMap;
+      return [...prev, { fen, times: 1 }];
     });
-  }, [board.pieces, board.turn, board.enPassantTarget]);
+  }, [board.pieces, board.turn, board.enPassantTarget, board.history]);
 
-  useEffect(() => {
-    if (fenRecords.size === 0) return;
-  }, [fenRecords]);
+  // useEffect(() => {
+  // if (fenRecords.length === 0) return;
+  // }, [fenRecords]);
 
   return {
     boardState: {
