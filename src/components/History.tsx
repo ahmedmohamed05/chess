@@ -18,7 +18,13 @@ function History({ movesHistory, goToMoveHandler }: HistoryProps) {
           <ul>
             {movesHistory.map((move, i) => {
               return (
-                <li className="cursor-pointer" key={i}>
+                <li
+                  className="cursor-pointer"
+                  key={i}
+                  onClick={() => {
+                    goToMoveHandler(i);
+                  }}
+                >
                   {i + 1}. {getMoveName(move)}
                 </li>
               );

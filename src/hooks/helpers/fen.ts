@@ -5,8 +5,7 @@ import { getFileLetter } from "../../utils/square-letter";
 export default function getFEN(
   pieces: PiecesMap,
   turn: PieceColor,
-  enPassantTarget: Coordinates | undefined,
-  movesPlayed: number
+  enPassantTarget: Coordinates | undefined
 ): string {
   let fen = "";
 

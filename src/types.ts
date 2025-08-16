@@ -67,6 +67,7 @@ export interface GameController {
   selectPiece: (piece: Piece | null) => void;
   movePiece: (targetPosition: Coordinates) => void;
   promotePawn: (promoteTo: PromotionOption) => void;
+  goToMove: (index: number) => void;
 }
 
 export interface MovingRef {

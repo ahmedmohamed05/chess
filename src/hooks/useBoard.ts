@@ -1,5 +1,5 @@
 // useBoard.ts
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   BoardState,
   Coordinates,
@@ -19,15 +19,14 @@ import handleEnPassant from "./helpers/handle-enpassant";
 import handleCastling from "./helpers/handle-castling";
 import getOpponentColor from "./helpers/get-opponent-color";
 import evaluateGameStatus from "./helpers/evaluate-game-status";
-import getFEN from "./helpers/fen";
 
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
 ): GameController {
   const [board, setBoard] = useState<BoardState>(initBoard);
-  const [fenRecords, setFenRecords] = useState<
-    { fen: string; times: number }[]
-  >([]);
+  // const [fenRecords, setFenRecords] = useState<
+  //   { fen: string; times: number }[]
+  // >([]);
 
   const selectPiece = useCallback(
     (piece: Piece | null) => {
@@ -206,6 +205,71 @@ export function useBoard(
     [board.promotionPending, board.history]
   );
 
+  const goToMove = useCallback(
+    (index: number) => {
+      // Reset every thing
+      const newBoard: BoardState = {
+        ...INIT_BOARD_STATE,
+        history: [],
+        pieces: new Map(INIT_BOARD_STATE.pieces),
+      };
+
+      const history = board.history;
+      for (let i = 0; i <= index; i++) {
+        const move = history[i];
+        if (!move) break;
+
+        const moveFromKey = coordinateToKey(move.from);
+        const moveToKey = coordinateToKey(move.to);
+
+        if (move.captured) {
+          newBoard.pieces.delete(coordinateToKey(move.captured.coordinates));
+        }
+
+        if (move.castle === "long" || move.castle === "short") {
+          const rookRank = move.piece.color === "light" ? 1 : 8;
+          const rookFile = move.castle === "short" ? 8 : 1;
+          const rookCoords: Coordinates = { rank: rookRank, file: rookFile };
+          const newRookFile = move.castle === "short" ? 6 : 4;
+
+          const rook = newBoard.pieces.get(coordinateToKey(rookCoords));
+          if (rook?.type === "rook") {
+            newBoard.pieces.delete(coordinateToKey(rookCoords));
+            newBoard.pieces.set(
+              coordinateToKey({ rank: rookRank, file: newRookFile }),
+              {
+                ...rook,
+                coordinates: { rank: rookRank, file: newRookFile },
+                hasMoved: true,
+              }
+            );
+          }
+        }
+
+        newBoard.pieces.delete(moveFromKey);
+        newBoard.pieces.set(moveToKey, {
+          ...move.piece,
+          coordinates: move.to,
+          hasMoved: true,
+        });
+
+        if (move.promotion) {
+          newBoard.pieces.set(moveToKey, {
+            ...move.piece,
+            type: move.promotion,
+            coordinates: move.to,
+          });
+        }
+
+        newBoard.turn = i % 2 === 0 ? "dark" : "light";
+        newBoard.history = [...newBoard.history, move];
+      }
+
+      setBoard(newBoard);
+    },
+    [board.history]
+  );
+
   // Evaluate game status on changes
   useEffect(() => {
     setBoard((prev) => {
@@ -214,26 +278,26 @@ export function useBoard(
     });
   }, [board.pieces, board.enPassantTarget, board.status, board.turn]);
 
-  useEffect(() => {
-    if (!board.history.length) return;
+  //TODO: three time reparation and 50 move draw
+  // useEffect(() => {
+  //   if (!board.history.length) return;
 
-    const fen = getFEN(
-      board.pieces,
-      board.turn,
-      board.enPassantTarget,
-      board.history.length
-    );
-    console.log(fen);
-    setFenRecords((prev) => {
-      for (const { fen: record } of prev) {
-        if (record === fen) {
-          console.log("found match");
-        }
-      }
+  //   const fen = getFEN(
+  //     board.pieces,
+  //     board.turn,
+  //     board.enPassantTarget,
+  //     board.history.length
+  //   );
+  //   setFenRecords((prev) => {
+  //     for (const { fen: record } of prev) {
+  //       if (record === fen) {
+  //         console.log("found match");
+  //       }
+  //     }
 
-      return [...prev, { fen, times: 1 }];
-    });
-  }, [board.pieces, board.turn, board.enPassantTarget, board.history]);
+  //     return [...prev, { fen, times: 1 }];
+  //   });
+  // }, [board.pieces, board.turn, board.enPassantTarget, board.history]);
 
   // useEffect(() => {
   // if (fenRecords.length === 0) return;
@@ -253,5 +317,6 @@ export function useBoard(
     selectPiece,
     movePiece,
     promotePawn,
+    goToMove,
   };
 }
