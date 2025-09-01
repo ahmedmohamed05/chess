@@ -13,6 +13,7 @@ export default function App() {
         <History
           goToMoveHandler={gameController.goToMove}
           movesHistory={gameController.boardState.history}
+          focusedMove={gameController.boardState.moveFocused}
         />
       </main>
     </div>

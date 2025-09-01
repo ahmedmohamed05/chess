@@ -1,13 +1,19 @@
-import { memo } from "react";
+import { memo, type CSSProperties } from "react";
 import type { Move } from "../types";
 import getMoveName from "../utils/get-move-name";
 
 export interface HistoryProps {
   movesHistory: Move[];
+  focusedMove: number;
   goToMoveHandler: (index: number) => void;
 }
 
-function History({ movesHistory, goToMoveHandler }: HistoryProps) {
+function History({ movesHistory, focusedMove, goToMoveHandler }: HistoryProps) {
+  const handlePreviousMove = () => goToMoveHandler(focusedMove - 1);
+  const handleNextMove = () => goToMoveHandler(focusedMove + 1);
+
+  console.log(focusedMove);
+
   return (
     <div className="game-history text-white flex flex-col bg-gray-700 py-4 px-5 border border-white rounded">
       <p className="title pb-5 font-bold">Moves History</p>
@@ -17,9 +23,17 @@ function History({ movesHistory, goToMoveHandler }: HistoryProps) {
         ) : (
           <ul>
             {movesHistory.map((move, i) => {
+              const highlightMove =
+                i === focusedMove && focusedMove !== movesHistory.length - 1;
+
+              const styles: CSSProperties = {
+                fontWeight: "bold",
+              };
+
               return (
                 <li
                   className="cursor-pointer"
+                  style={highlightMove ? styles : {}}
                   key={i}
                   onClick={() => {
                     goToMoveHandler(i);
@@ -34,8 +48,8 @@ function History({ movesHistory, goToMoveHandler }: HistoryProps) {
       </div>
       {/* TODO: disable the buttons when needed */}
       <div className="buttons pt-5 flex justify-between items-center gap-5 border-t-[1px]">
-        <ChangeMoveButton direction="<" clickHandler={goToMoveHandler} />
-        <ChangeMoveButton direction=">" clickHandler={goToMoveHandler} />
+        <ChangeMoveButton direction="<" clickHandler={handlePreviousMove} />
+        <ChangeMoveButton direction=">" clickHandler={handleNextMove} />
       </div>
     </div>
   );
@@ -43,14 +57,14 @@ function History({ movesHistory, goToMoveHandler }: HistoryProps) {
 
 interface ChangeMoveButtonProps {
   direction: "<" | ">";
-  clickHandler: (index: number) => void;
+  clickHandler: () => void;
 }
 
 function ChangeMoveButton({ direction, clickHandler }: ChangeMoveButtonProps) {
   return (
     <button
       className="previous-move flex-1/2 p-2 border border-white text-2xl font-bold"
-      onClick={() => clickHandler}
+      onClick={clickHandler}
     >
       {direction}
     </button>

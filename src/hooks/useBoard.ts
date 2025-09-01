@@ -1,5 +1,4 @@
-// useBoard.ts
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   BoardState,
   Coordinates,
@@ -20,10 +19,14 @@ import handleCastling from "./helpers/handle-castling";
 import getOpponentColor from "./helpers/get-opponent-color";
 import evaluateGameStatus from "./helpers/evaluate-game-status";
 
+// TODO: show the original history
+
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
 ): GameController {
   const [board, setBoard] = useState<BoardState>(initBoard);
+  const [focusedMoveIndex, setFocusedMoveIndex] = useState<null | number>(null); // -1: Initial position
+
   // const [fenRecords, setFenRecords] = useState<
   //   { fen: string; times: number }[]
   // >([]);
@@ -31,6 +34,8 @@ export function useBoard(
   const selectPiece = useCallback(
     (piece: Piece | null) => {
       if (piece && piece.color !== board.turn) return;
+
+      if (focusedMoveIndex !== null) return;
 
       setBoard((prev) => ({
         ...prev,
@@ -44,12 +49,13 @@ export function useBoard(
         ),
       }));
     },
-    [board.turn]
+    [board.turn, focusedMoveIndex]
   );
 
   const movePiece = useCallback(
     (toPosition: Coordinates) => {
       if (!board.selectedPiece) return;
+      console.log(board.turn);
       const currentPiece = board.selectedPiece;
       if (currentPiece.color !== board.turn) return;
 
@@ -144,6 +150,7 @@ export function useBoard(
           pieces: newPieces,
           turn: getOpponentColor(prev.turn),
           history: [...prev.history, move],
+          moveFocused: prev.moveFocused + 1,
           moves: [],
           selectedPiece: null,
           enPassantTarget:
@@ -207,6 +214,16 @@ export function useBoard(
 
   const goToMove = useCallback(
     (index: number) => {
+      if (index < -1) return;
+      if (index >= board.history.length) return;
+
+      setFocusedMoveIndex(index);
+    },
+    [board.history]
+  );
+
+  const getBoardAtFocusedMove = useCallback(
+    (index: number) => {
       // Reset every thing
       const newBoard: BoardState = {
         ...INIT_BOARD_STATE,
@@ -231,7 +248,6 @@ export function useBoard(
           const rookFile = move.castle === "short" ? 8 : 1;
           const rookCoords: Coordinates = { rank: rookRank, file: rookFile };
           const newRookFile = move.castle === "short" ? 6 : 4;
-
           const rook = newBoard.pieces.get(coordinateToKey(rookCoords));
           if (rook?.type === "rook") {
             newBoard.pieces.delete(coordinateToKey(rookCoords));
@@ -265,12 +281,14 @@ export function useBoard(
         newBoard.history = [...newBoard.history, move];
       }
 
-      setBoard(newBoard);
+      newBoard.history = board.history;
+      newBoard.moveFocused = index;
+
+      return newBoard;
     },
     [board.history]
   );
 
-  // Evaluate game status on changes
   useEffect(() => {
     setBoard((prev) => {
       const { status, kingInCheckPosition } = evaluateGameStatus(prev);
@@ -303,9 +321,20 @@ export function useBoard(
   // if (fenRecords.length === 0) return;
   // }, [fenRecords]);
 
+  const isAtLatestMove = useMemo(
+    () =>
+      focusedMoveIndex === null ||
+      focusedMoveIndex === board.history.length - 1,
+    [focusedMoveIndex, board.history]
+  );
+
+  const displayBoard = isAtLatestMove
+    ? board
+    : getBoardAtFocusedMove(focusedMoveIndex!);
+
   return {
     boardState: {
-      ...board,
+      ...displayBoard,
       validMoves: getPieceMoves(
         board.pieces,
         board.selectedPiece,
@@ -314,9 +343,29 @@ export function useBoard(
         board.status === "check"
       ),
     },
-    selectPiece,
-    movePiece,
+    selectPiece: (option) => {
+      if (!isAtLatestMove) return;
+      selectPiece(option);
+    },
+
     promotePawn,
     goToMove,
+    // getBoardAtFocusedMove,
+    movePiece: (to) => {
+      if (!isAtLatestMove) return;
+      // if user is looking at past move and tries to move -> branch
+
+      if (
+        focusedMoveIndex !== null &&
+        focusedMoveIndex < board.history.length - 1
+      ) {
+        setBoard((prev) => ({
+          ...prev,
+          history: prev.history.slice(0, focusedMoveIndex + 1),
+        }));
+        setFocusedMoveIndex(null); // reset back to live play
+      }
+      movePiece(to);
+    },
   };
 }

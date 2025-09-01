@@ -159,3 +159,7 @@ body {
   will-change: transform;
   transition: transform 0.1s ease;
 }
+
+.moves-history ul li[data-highlight-this-move="true"] {
+  outline: red solid 1px2;
+}

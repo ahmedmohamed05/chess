@@ -109,4 +109,5 @@ export const INIT_BOARD_STATE: BoardState = {
   promotionPending: false,
   kingInCheckPosition: undefined,
   positionRecord: new Map(),
+  moveFocused: -1,
 };

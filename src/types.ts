@@ -60,6 +60,7 @@ export interface BoardState {
   promotionPending: boolean;
   kingInCheckPosition: Coordinates | undefined;
   positionRecord: Map<string, number>;
+  moveFocused: number;
 }
 
 export interface GameController {
@@ -68,6 +69,7 @@ export interface GameController {
   movePiece: (targetPosition: Coordinates) => void;
   promotePawn: (promoteTo: PromotionOption) => void;
   goToMove: (index: number) => void;
+  // getBoardAtFocusedMove: () => BoardState;
 }
 
 export interface MovingRef {
