@@ -12,8 +12,6 @@ function History({ movesHistory, focusedMove, goToMoveHandler }: HistoryProps) {
   const handlePreviousMove = () => goToMoveHandler(focusedMove - 1);
   const handleNextMove = () => goToMoveHandler(focusedMove + 1);
 
-  console.log(focusedMove);
-
   return (
     <div className="game-history text-white flex flex-col bg-gray-700 py-4 px-5 border border-white rounded">
       <p className="title pb-5 font-bold">Moves History</p>

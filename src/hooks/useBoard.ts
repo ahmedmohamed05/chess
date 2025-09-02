@@ -25,17 +25,25 @@ export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
 ): GameController {
   const [board, setBoard] = useState<BoardState>(initBoard);
-  const [focusedMoveIndex, setFocusedMoveIndex] = useState<null | number>(null); // -1: Initial position
+  const [focusedMoveIndex, setFocusedMoveIndex] = useState<null | number>(null);
 
   // const [fenRecords, setFenRecords] = useState<
   //   { fen: string; times: number }[]
   // >([]);
 
+  const isAtLatestMove = useMemo(
+    () =>
+      focusedMoveIndex === null ||
+      focusedMoveIndex === board.history.length - 1,
+
+    [focusedMoveIndex, board.history]
+  );
+
   const selectPiece = useCallback(
     (piece: Piece | null) => {
       if (piece && piece.color !== board.turn) return;
 
-      if (focusedMoveIndex !== null) return;
+      if (!isAtLatestMove) return;
 
       setBoard((prev) => ({
         ...prev,
@@ -49,13 +57,13 @@ export function useBoard(
         ),
       }));
     },
-    [board.turn, focusedMoveIndex]
+    [board.turn, isAtLatestMove]
   );
 
   const movePiece = useCallback(
     (toPosition: Coordinates) => {
       if (!board.selectedPiece) return;
-      console.log(board.turn);
+
       const currentPiece = board.selectedPiece;
       if (currentPiece.color !== board.turn) return;
 
@@ -145,13 +153,15 @@ export function useBoard(
           castle,
         };
 
+        // Update "focusedMoveIndex" to display the new board
+        setFocusedMoveIndex(prev.moveFocused + 1);
+
         return {
           ...prev,
           pieces: newPieces,
           turn: getOpponentColor(prev.turn),
           history: [...prev.history, move],
           moveFocused: prev.moveFocused + 1,
-          moves: [],
           selectedPiece: null,
           enPassantTarget:
             currentPiece.type === "pawn" &&
@@ -320,13 +330,6 @@ export function useBoard(
   // useEffect(() => {
   // if (fenRecords.length === 0) return;
   // }, [fenRecords]);
-
-  const isAtLatestMove = useMemo(
-    () =>
-      focusedMoveIndex === null ||
-      focusedMoveIndex === board.history.length - 1,
-    [focusedMoveIndex, board.history]
-  );
 
   const displayBoard = isAtLatestMove
     ? board
