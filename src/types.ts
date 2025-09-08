@@ -61,6 +61,7 @@ export interface BoardState {
   kingInCheckPosition: Coordinates | undefined;
   positionRecord: Map<string, number>;
   moveFocused: number;
+  calculateFen: boolean;
 }
 
 export interface GameController {
@@ -77,3 +78,5 @@ export interface MovingRef {
   piece: Piece;
   element: HTMLDivElement;
 }
+
+export type FenMap = Map<string, number>;
