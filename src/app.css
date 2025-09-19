@@ -44,7 +44,12 @@ body {
 
 .game-history {
   height: var(--board-height);
-  max-height: var(--board-height);
+}
+
+@media (width < 48rem) {
+  .game-history {
+    height: auto;
+  }
 }
 
 .game-history .moves-history {
@@ -158,8 +163,4 @@ body {
 .piece {
   will-change: transform;
   transition: transform 0.1s ease;
-}
-
-.moves-history ul li[data-highlight-this-move="true"] {
-  outline: red solid 1px2;
 }

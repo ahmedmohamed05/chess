@@ -398,7 +398,6 @@ export function useBoard(
 
   // Effects
   useEffect(() => {
-    console.log(401);
     setBoard((prev) => {
       const { status, kingInCheckPosition } = evaluateGameStatus(prev);
 
@@ -427,7 +426,6 @@ export function useBoard(
     board.status === "check"
   );
 
-  // Return API
   return {
     boardState: {
       ...displayBoard,

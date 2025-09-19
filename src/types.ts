@@ -80,3 +80,8 @@ export interface MovingRef {
 }
 
 export type FenMap = Map<string, number>;
+
+export type MovesPair = {
+  first: Move & { index: number };
+  second: (Move & { index: number }) | undefined;
+};

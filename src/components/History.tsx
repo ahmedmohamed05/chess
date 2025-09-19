@@ -1,5 +1,6 @@
-import { memo, type CSSProperties } from "react";
-import type { Move } from "../types";
+import { ChangeMoveButton } from "./ChangeMoveButton";
+import { memo, useMemo, type CSSProperties, type ReactNode } from "react";
+import type { Move, MovesPair } from "../types";
 import getMoveName from "../utils/get-move-name";
 
 export interface HistoryProps {
@@ -12,6 +13,92 @@ function History({ movesHistory, focusedMove, goToMoveHandler }: HistoryProps) {
   const handlePreviousMove = () => goToMoveHandler(focusedMove - 1);
   const handleNextMove = () => goToMoveHandler(focusedMove + 1);
 
+  // TODO: extract this functions into separated files
+
+  // Combine the move to a two-moves pair
+  const movesPairs: MovesPair[] = useMemo(() => {
+    // First move edge case
+    if (movesHistory.length === 1) {
+      return [
+        {
+          first: { ...movesHistory[0], index: 0 },
+          second: undefined,
+        },
+      ];
+    }
+
+    const result: MovesPair[] = [];
+
+    for (let i = 0; i < movesHistory.length; i++) {
+      const move = movesHistory[i];
+      if (move.piece.color === "dark") continue;
+
+      // Light player's move
+      result.push({ first: { ...move, index: i }, second: undefined });
+
+      // Peak to the next move which is the dark player move and add it if exists
+      if (i + 1 < movesHistory.length) {
+        result.pop();
+        result.push({
+          first: { ...move, index: i },
+          second: { ...movesHistory[i + 1], index: i + 1 },
+        });
+      }
+    }
+
+    return result;
+  }, [movesHistory]);
+
+  // Convert Moves Pairs to React elements
+  const movesListItems: ReactNode[] = useMemo(() => {
+    const result: ReactNode[] = [];
+
+    for (const { first, second } of movesPairs) {
+      const lightMoveStylesCondition =
+        first.index === focusedMove && focusedMove !== movesHistory.length - 1;
+
+      const secondMoveStylesCondition =
+        second?.index === focusedMove &&
+        focusedMove !== movesHistory.length - 1;
+
+      const styles: CSSProperties = {
+        fontWeight: "bold",
+      };
+
+      result.push(
+        <li
+          key={crypto.randomUUID()}
+          className="flex justify-between items-center"
+          style={{ marginBlockEnd: 10 }}
+        >
+          <div
+            className="light-move cursor-pointer"
+            style={lightMoveStylesCondition ? styles : {}}
+            onClick={() => {
+              goToMoveHandler(first.index);
+            }}
+          >
+            {first.index + 1}. {getMoveName(first)}
+          </div>
+
+          {second && (
+            <div
+              className="dark-move cursor-pointer"
+              style={secondMoveStylesCondition ? styles : {}}
+              onClick={() => {
+                goToMoveHandler(second.index);
+              }}
+            >
+              {second.index + 1}. {getMoveName(second)}
+            </div>
+          )}
+        </li>
+      );
+    }
+
+    return result;
+  }, [movesPairs, goToMoveHandler, focusedMove, movesHistory]);
+
   return (
     <div className="game-history text-white flex flex-col bg-gray-700 py-4 px-5 border border-white rounded">
       <p className="title pb-5 font-bold">Moves History</p>
@@ -19,29 +106,7 @@ function History({ movesHistory, focusedMove, goToMoveHandler }: HistoryProps) {
         {movesHistory.length === 0 ? (
           <p>Play A Move</p>
         ) : (
-          <ul>
-            {movesHistory.map((move, i) => {
-              const highlightMove =
-                i === focusedMove && focusedMove !== movesHistory.length - 1;
-
-              const styles: CSSProperties = {
-                fontWeight: "bold",
-              };
-
-              return (
-                <li
-                  className="cursor-pointer"
-                  style={highlightMove ? styles : {}}
-                  key={i}
-                  onClick={() => {
-                    goToMoveHandler(i);
-                  }}
-                >
-                  {i + 1}. {getMoveName(move)}
-                </li>
-              );
-            })}
-          </ul>
+          <ol>{movesListItems}</ol>
         )}
       </div>
       {/* TODO: disable the buttons when needed */}
@@ -50,22 +115,6 @@ function History({ movesHistory, focusedMove, goToMoveHandler }: HistoryProps) {
         <ChangeMoveButton direction=">" clickHandler={handleNextMove} />
       </div>
     </div>
-  );
-}
-
-interface ChangeMoveButtonProps {
-  direction: "<" | ">";
-  clickHandler: () => void;
-}
-
-function ChangeMoveButton({ direction, clickHandler }: ChangeMoveButtonProps) {
-  return (
-    <button
-      className="previous-move flex-1/2 p-2 border border-white text-2xl font-bold"
-      onClick={clickHandler}
-    >
-      {direction}
-    </button>
   );
 }
 

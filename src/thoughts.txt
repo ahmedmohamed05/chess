@@ -1,0 +1,11 @@
+[m1, m2, m3, m4, m5]
+
+check if the move from white => go to *
+
+
+* store it in variable 
+if there is another move go to #
+push the whiteMove to the array with the blackMove as undefined
+
+
+#remove the last pair of moves in the array and push new pair the both moves
