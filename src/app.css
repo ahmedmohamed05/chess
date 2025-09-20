@@ -77,6 +77,10 @@ body {
   background-color: #555;
 }
 
+.game-history .game-history__item:nth-child(even) {
+  background-color: #555;
+}
+
 .piece {
   touch-action: none; /* Disable browser touch actions on pieces */
 }
