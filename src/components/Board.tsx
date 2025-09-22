@@ -47,7 +47,7 @@ export default function Board({ controller }: BoardProps) {
     []
   );
 
-  // Title: Board State Shared Handlers
+  // Board State Shared Handlers
   const dragHandler = useCallback(({ x, y }: ScreenCoordinates) => {
     if (!movingRef.current || !isDragging.current) return;
 
@@ -120,7 +120,7 @@ export default function Board({ controller }: BoardProps) {
     target.style.top = y - target.offsetHeight / 2 + "px";
   };
 
-  // Title: Mouse event handlers
+  // Mouse event handlers
   const mouseDownHandler = (e: MouseEvent<HTMLDivElement>) => {
     // Wait Until Select Promotion Option
     if (boardState.promotionPending) return;
@@ -176,7 +176,7 @@ export default function Board({ controller }: BoardProps) {
     selectPiece(null); // Deselecting a piece when clicking empty square
   };
 
-  // Title: Touch event handlers
+  // Touch event handlers
   const touchStartHandler = (e: TouchEvent<HTMLDivElement>) => {
     // To Prevent Browser Gestures For Refreshing
     e.preventDefault();
@@ -305,7 +305,7 @@ export default function Board({ controller }: BoardProps) {
 
   return (
     <div
-      className="board"
+      className={`board ${boardState.status !== "playing" && "disable"}`}
       ref={boardRef}
       onMouseDown={mouseDownHandler}
       onMouseMove={mouseMoveHandler}

@@ -46,7 +46,8 @@ export type GameStatus =
   | "check"
   | "checkmate"
   | "draw"
-  | "stalemate";
+  | "stalemate"
+  | "threefold repetition";
 
 export interface BoardState {
   pieces: PiecesMap;

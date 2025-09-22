@@ -37,6 +37,7 @@ export function useBoard(
     [focusedMoveIndex, board.history]
   );
 
+  // Used as the length of the fenMap to prevent recording the same position twice because of the strict mode in React
   const fenRecordsCounter = useRef(0);
 
   // Helper functions
@@ -62,13 +63,6 @@ export function useBoard(
     },
     [fenMap]
   );
-
-  useEffect(() => {
-    console.log("-".repeat(20));
-    fenMap.forEach((val, key) => {
-      console.log(key, val);
-    });
-  }, [fenMap]);
 
   const isValidMove = useCallback(
     (piece: Piece, toPosition: Coordinates, moves: Coordinates[]): boolean => {
@@ -153,9 +147,7 @@ export function useBoard(
         status === "check"
       );
 
-      if (!isValidMove(currentPiece, toPosition, pieceMoves)) {
-        return;
-      }
+      if (!isValidMove(currentPiece, toPosition, pieceMoves)) return;
 
       setBoard((prev) => {
         const newPieces = new Map(prev.pieces);
@@ -246,12 +238,6 @@ export function useBoard(
         );
         updateFenRecord(fen);
 
-        // Check for threefold repetition after updating FEN
-        if (checkThreefoldRepetition(fen) && newBoard.status === "playing") {
-          console.log("draw");
-          // newBoard.status = "draw";
-        }
-
         return newBoard;
       });
     },
@@ -264,7 +250,6 @@ export function useBoard(
       createMove,
       calculateEnPassantTarget,
       updateFenRecord,
-      checkThreefoldRepetition,
     ]
   );
 
@@ -369,6 +354,8 @@ export function useBoard(
     (piece: Piece | null) => {
       if (piece && piece.color !== board.turn) return;
       if (!isAtLatestMove) return;
+      if (board.status === "checkmate") return;
+      if (board.status !== "playing") return;
 
       setBoard((prev) => ({
         ...prev,
@@ -382,7 +369,7 @@ export function useBoard(
         ),
       }));
     },
-    [board.turn, isAtLatestMove]
+    [board.turn, isAtLatestMove, board.status]
   );
 
   const movePiece = useCallback(
@@ -453,20 +440,10 @@ export function useBoard(
         );
         updateFenRecord(fen);
 
-        if (checkThreefoldRepetition(fen) && newBoard.status === "playing") {
-          console.log("draw");
-          // newBoard.status = "draw";
-        }
-
         return newBoard;
       });
     },
-    [
-      board.promotionPending,
-      board.history,
-      updateFenRecord,
-      checkThreefoldRepetition,
-    ]
+    [board.promotionPending, board.history, updateFenRecord]
   );
 
   const goToMove = useCallback(
@@ -476,6 +453,27 @@ export function useBoard(
     },
     [board.history.length]
   );
+
+  // Detecting threefold repetition draw
+  useEffect(() => {
+    setBoard((prev) => {
+      if (prev.status !== "playing") return prev;
+
+      const newBoard: BoardState = { ...prev };
+
+      const fen = getFEN(
+        prev.pieces,
+        prev.turn,
+        prev.enPassantTarget,
+        prev.history.length
+      );
+
+      if (checkThreefoldRepetition(fen))
+        newBoard.status = "threefold repetition";
+
+      return newBoard;
+    });
+  }, [fenMap, checkThreefoldRepetition]);
 
   // Computed values
   const displayBoard = isAtLatestMove

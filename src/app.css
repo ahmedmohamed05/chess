@@ -127,6 +127,15 @@ body {
   }
 }
 
+.board.disable {
+  opacity: 0.6;
+  & * {
+    touch-action: none;
+    user-select: none;
+    cursor: not-allowed;
+  }
+}
+
 .highlight {
   background-color: rgba(144, 238, 144, 0.5) !important;
 }
