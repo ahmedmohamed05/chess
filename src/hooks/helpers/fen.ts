@@ -9,8 +9,7 @@ import handleCastling from "./handle-castling";
 export default function getFEN(
   pieces: PiecesMap,
   turn: PieceColor,
-  enPassantTarget: Coordinates | undefined,
-  movesPlayed: number
+  enPassantTarget: Coordinates | undefined
 ): string {
   let fen = "";
 

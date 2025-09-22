@@ -233,8 +233,7 @@ export function useBoard(
         const fen = getFEN(
           new Map(newPieces),
           newBoard.turn,
-          newBoard.enPassantTarget,
-          newBoard.history.length
+          newBoard.enPassantTarget
         );
         updateFenRecord(fen);
 
@@ -435,8 +434,7 @@ export function useBoard(
         const fen = getFEN(
           new Map(newPieces),
           newBoard.turn,
-          newBoard.enPassantTarget,
-          newBoard.history.length
+          newBoard.enPassantTarget
         );
         updateFenRecord(fen);
 
@@ -461,12 +459,7 @@ export function useBoard(
 
       const newBoard: BoardState = { ...prev };
 
-      const fen = getFEN(
-        prev.pieces,
-        prev.turn,
-        prev.enPassantTarget,
-        prev.history.length
-      );
+      const fen = getFEN(prev.pieces, prev.turn, prev.enPassantTarget);
 
       if (checkThreefoldRepetition(fen))
         newBoard.status = "threefold repetition";
