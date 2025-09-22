@@ -9,7 +9,7 @@ export function ChangeMoveButton({
 }: ChangeMoveButtonProps) {
   return (
     <button
-      className="previous-move flex-1/2 p-2 border border-white text-2xl font-bold"
+      className="previous-move flex-1/2 p-2 border border-white text-2xl font-bold cursor-pointer"
       onClick={clickHandler}
     >
       {direction}

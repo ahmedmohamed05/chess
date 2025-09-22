@@ -34,16 +34,21 @@ function History({ movesHistory, focusedMove, goToMoveHandler }: HistoryProps) {
           </ol>
         )}
       </div>
-      {/* TODO: disable the buttons when needed */}
       <div className="buttons pt-5 flex justify-between items-center gap-5 border-t-[1px]">
-        <ChangeMoveButton
-          direction="<"
-          clickHandler={() => goToMoveHandler(focusedMove - 1)}
-        />
-        <ChangeMoveButton
-          direction=">"
-          clickHandler={() => goToMoveHandler(focusedMove + 1)}
-        />
+        {movesHistory.length ? (
+          <>
+            <ChangeMoveButton
+              direction="<"
+              clickHandler={() => goToMoveHandler(focusedMove - 1)}
+            />
+            <ChangeMoveButton
+              direction=">"
+              clickHandler={() => goToMoveHandler(focusedMove + 1)}
+            />
+          </>
+        ) : (
+          <p>Have Fun</p>
+        )}
       </div>
     </div>
   );

@@ -10,15 +10,15 @@ export default function handleCastling(
 ): "short" | "long" | undefined {
   const isCastling =
     currentPiece.type === "king" &&
-    Math.abs(fromPosition.file - toPosition.file) === 2;
+    Math.abs(fromPosition.file - toPosition.file) === 2; // distance between files is 2 so it means castling
 
   if (!isCastling) return undefined;
 
   const castleType = toPosition.file > fromPosition.file ? "short" : "long";
   const rookRank = currentPiece.color === "light" ? 1 : 8;
-  const rookFile = castleType === "short" ? 8 : 1;
+  const rookFile = castleType === "long" ? 1 : 8;
   const rookCoords: Coordinates = { rank: rookRank, file: rookFile };
-  const newRookFile = castleType === "short" ? 6 : 4;
+  const newRookFile = castleType === "long" ? 4 : 6;
 
   const rook = pieces.get(coordinateToKey(rookCoords));
   if (rook?.type === "rook") {

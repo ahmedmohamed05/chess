@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type BoardState,
   type Coordinates,
@@ -22,7 +22,6 @@ import getOpponentColor from "./helpers/get-opponent-color";
 import evaluateGameStatus from "./helpers/evaluate-game-status";
 import getFEN from "./helpers/fen";
 
-// TODO: remove not needed useEffects, specially the ones that make the component renders twice
 export function useBoard(
   initBoard: BoardState = INIT_BOARD_STATE
 ): GameController {
@@ -38,14 +37,38 @@ export function useBoard(
     [focusedMoveIndex, board.history]
   );
 
+  const fenRecordsCounter = useRef(0);
+
   // Helper functions
-  const updateFenRecord = useCallback((newFen: string) => {
-    setFenMap((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(newFen, (newMap.get(newFen) ?? 0) + 1);
-      return newMap;
+  const updateFenRecord = useCallback(
+    (newFen: string) => {
+      if (fenRecordsCounter.current > board.history.length) return;
+
+      setFenMap((prev) => {
+        const newMap = new Map(prev);
+        const currentCount = newMap.get(newFen) ?? 0;
+        newMap.set(newFen, currentCount + 1);
+        return newMap;
+      });
+      fenRecordsCounter.current += 1;
+    },
+    [board.history.length]
+  );
+
+  const checkThreefoldRepetition = useCallback(
+    (fen: string) => {
+      const count = fenMap.get(fen) ?? 0;
+      return count >= 3;
+    },
+    [fenMap]
+  );
+
+  useEffect(() => {
+    console.log("-".repeat(20));
+    fenMap.forEach((val, key) => {
+      console.log(key, val);
     });
-  }, []);
+  }, [fenMap]);
 
   const isValidMove = useCallback(
     (piece: Piece, toPosition: Coordinates, moves: Coordinates[]): boolean => {
@@ -117,7 +140,11 @@ export function useBoard(
 
   const executeMove = useCallback(
     (currentPiece: Piece, toPosition: Coordinates) => {
-      const { pieces, turn, enPassantTarget, status } = board;
+      const pieces = board.pieces;
+      const turn = board.turn;
+      const enPassantTarget = board.enPassantTarget;
+      const status = board.status;
+
       const pieceMoves = getPieceMoves(
         pieces,
         currentPiece,
@@ -188,7 +215,8 @@ export function useBoard(
 
         setFocusedMoveIndex(prev.moveFocused + 1);
 
-        const newBoard: BoardState = {
+        // To evaluate game status and changes, Prevent re-rendering
+        const tempBoard: BoardState = {
           ...prev,
           pieces: newPieces,
           turn: getOpponentColor(prev.turn),
@@ -199,19 +227,45 @@ export function useBoard(
           promotionPending: isPromotion,
         };
 
-        if (prev.calculateFen) {
-          const fen = getFEN(
-            newPieces,
-            newBoard.turn,
-            newBoard.enPassantTarget
-          );
-          updateFenRecord(fen);
+        const { status: newStatus, kingInCheckPosition } =
+          evaluateGameStatus(tempBoard);
+
+        const newBoard: BoardState = {
+          ...tempBoard,
+          status: newStatus,
+          kingInCheckPosition,
+        };
+
+        // Handle FEN tracking and threefold repetition
+
+        const fen = getFEN(
+          new Map(newPieces),
+          newBoard.turn,
+          newBoard.enPassantTarget,
+          newBoard.history.length
+        );
+        updateFenRecord(fen);
+
+        // Check for threefold repetition after updating FEN
+        if (checkThreefoldRepetition(fen) && newBoard.status === "playing") {
+          console.log("draw");
+          // newBoard.status = "draw";
         }
 
         return newBoard;
       });
     },
-    [board, isValidMove, createMove, calculateEnPassantTarget, updateFenRecord]
+    [
+      board.pieces,
+      board.turn,
+      board.status,
+      board.enPassantTarget,
+      isValidMove,
+      createMove,
+      calculateEnPassantTarget,
+      updateFenRecord,
+      checkThreefoldRepetition,
+    ]
   );
 
   const reconstructBoardAtMove = useCallback(
@@ -278,11 +332,20 @@ export function useBoard(
         newBoard.history = [...newBoard.history, move];
       }
 
-      return {
+      // Evaluate status for the reconstructed board
+      const finalBoard = {
         ...newBoard,
         history: board.history,
         moveFocused: targetIndex,
         calculateFen: false,
+      };
+
+      const { status, kingInCheckPosition } = evaluateGameStatus(finalBoard);
+
+      return {
+        ...finalBoard,
+        status,
+        kingInCheckPosition,
       };
     },
     [board.history]
@@ -363,29 +426,47 @@ export function useBoard(
           isCheck: isCheckAfterPromotion,
         };
 
-        const newBoard: BoardState = {
+        // Evaluate status after promotion
+        const tempBoard: BoardState = {
           ...prev,
           pieces: newPieces,
           validMoves: [],
           history: [...prev.history, move],
           selectedPiece: null,
-          status: "playing",
           promotionPending: false,
         };
 
-        if (prev.calculateFen) {
-          const fen = getFEN(
-            newPieces,
-            newBoard.turn,
-            newBoard.enPassantTarget
-          );
-          updateFenRecord(fen);
+        const { status, kingInCheckPosition } = evaluateGameStatus(tempBoard);
+
+        const newBoard: BoardState = {
+          ...tempBoard,
+          status,
+          kingInCheckPosition,
+        };
+
+        // Handle FEN tracking for promotion
+        const fen = getFEN(
+          new Map(newPieces),
+          newBoard.turn,
+          newBoard.enPassantTarget,
+          newBoard.history.length
+        );
+        updateFenRecord(fen);
+
+        if (checkThreefoldRepetition(fen) && newBoard.status === "playing") {
+          console.log("draw");
+          // newBoard.status = "draw";
         }
 
         return newBoard;
       });
     },
-    [board.promotionPending, board.history, updateFenRecord]
+    [
+      board.promotionPending,
+      board.history,
+      updateFenRecord,
+      checkThreefoldRepetition,
+    ]
   );
 
   const goToMove = useCallback(
@@ -395,23 +476,6 @@ export function useBoard(
     },
     [board.history.length]
   );
-
-  // Effects
-  useEffect(() => {
-    setBoard((prev) => {
-      const { status, kingInCheckPosition } = evaluateGameStatus(prev);
-
-      const isThreefoldRepetition = (fen: string) =>
-        (fenMap.get(fen) ?? 0) >= 3;
-
-      const fen = getFEN(prev.pieces, prev.turn, prev.enPassantTarget);
-      if (isThreefoldRepetition(fen)) {
-        console.log("Draw by repetition");
-      }
-
-      return { ...prev, status, kingInCheckPosition };
-    });
-  }, [board.turn, fenMap]);
 
   // Computed values
   const displayBoard = isAtLatestMove

@@ -1,4 +1,4 @@
-import type { Coordinates, PieceColor, PiecesMap } from "../../types";
+import type { Coordinates, Piece, PieceColor, PiecesMap } from "../../types";
 import findPiece from "../../utils/find-piece";
 import getPieceMoves from "../../utils/get-piece-moves";
 import isCheckOn from "../../utils/is-check";
@@ -9,7 +9,8 @@ import handleCastling from "./handle-castling";
 export default function getFEN(
   pieces: PiecesMap,
   turn: PieceColor,
-  enPassantTarget: Coordinates | undefined
+  enPassantTarget: Coordinates | undefined,
+  movesPlayed: number
 ): string {
   let fen = "";
 
@@ -50,66 +51,64 @@ export default function getFEN(
   if (enPassantTarget)
     fen += " " + getFileLetter(enPassantTarget.file) + enPassantTarget.rank;
 
-  //TODO: Refactor this to one function
-  // Castling Rights for dark King
-  {
-    const darkKing = findPiece(
-      pieces,
-      (p) => p.type === "king" && p.color === "dark"
-    );
-    if (!darkKing) throw Error("Dark king is missed");
-
-    const kingMoves = getPieceMoves(
-      pieces,
-      darkKing,
-      turn,
-      enPassantTarget,
-      isCheckOn(pieces, darkKing)
-    );
-
-    for (const kingMove of kingMoves) {
-      const ret = handleCastling(
-        pieces,
-        darkKing,
-        darkKing.coordinates,
-        kingMove
-      );
-      if (ret === undefined) continue;
-      if (ret === "short") fen += " " + "k";
-      if (ret === "long") fen += " " + "q";
-    }
-  }
-
-  // Castling Rights for light King
   {
     const whiteKing = findPiece(
       pieces,
       (p) => p.type === "king" && p.color === "light"
     );
     if (!whiteKing) throw Error("Light king is missed");
-
-    const kingMoves = getPieceMoves(
+    const whiteKingResult = fenForKings(
       pieces,
       whiteKing,
       turn,
-      enPassantTarget,
-      isCheckOn(pieces, whiteKing)
+      enPassantTarget
     );
-
-    for (const kingMove of kingMoves) {
-      const ret = handleCastling(
-        pieces,
-        whiteKing,
-        whiteKing.coordinates,
-        kingMove
-      );
-      if (ret === undefined) continue;
-      if (ret === "short") fen += " " + "K";
-      if (ret === "long") fen += " " + "Q";
+    if (whiteKingResult !== "") {
+      fen += " " + whiteKingResult;
     }
+
+    const darkKing = findPiece(
+      pieces,
+      (p) => p.type === "king" && p.color === "dark"
+    );
+    if (!darkKing) throw Error("Dark king is missed");
+
+    const darkKingResult = fenForKings(pieces, darkKing, turn, enPassantTarget);
+    if (darkKingResult !== "") {
+      fen += " " + darkKingResult;
+    }
+
+    fen += " " + fenForKings(pieces, whiteKing, turn, enPassantTarget);
   }
 
   // fen += " " + Math.floor(movesPlayed / 2).toString(); // Calculate full moves
+
+  return fen;
+}
+
+function fenForKings(
+  pieces: PiecesMap,
+  king: Piece,
+  turn: PieceColor,
+  enPassantTarget: Coordinates | undefined
+) {
+  const kingMoves = getPieceMoves(
+    pieces,
+    king,
+    turn,
+    enPassantTarget,
+    isCheckOn(pieces, king)
+  );
+
+  let fen = "";
+  for (const kingMove of kingMoves) {
+    const ret = handleCastling(pieces, king, king.coordinates, kingMove);
+    if (ret === undefined) continue;
+    if (ret === "short") fen += "K";
+    if (ret === "long") fen += "Q";
+  }
+
+  if (fen !== "" && king.color === "dark") fen.toLowerCase();
 
   return fen;
 }
