@@ -17,7 +17,7 @@ export default function GameResult({
   restartHandler,
 }: GameResultProps) {
   if (forceHide) return;
-  if (gameStatus === "playing") return;
+  if (gameStatus === "playing" || gameStatus === "check") return;
 
   const winnerColor = lastMove.piece.color;
   let resultText = gameStatus;

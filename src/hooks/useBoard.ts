@@ -230,6 +230,7 @@ export function useBoard(
 
         // Handle FEN tracking and threefold repetition
 
+        // Send a copy of the pieces to not effect the position
         const fen = getFEN(
           new Map(newPieces),
           newBoard.turn,
@@ -431,6 +432,8 @@ export function useBoard(
         };
 
         // Handle FEN tracking for promotion
+
+        // Send a copy of the pieces to not effect the position
         const fen = getFEN(
           new Map(newPieces),
           newBoard.turn,
@@ -459,7 +462,8 @@ export function useBoard(
 
       const newBoard: BoardState = { ...prev };
 
-      const fen = getFEN(prev.pieces, prev.turn, prev.enPassantTarget);
+      // Send a copy of the pieces to not effect the position
+      const fen = getFEN(new Map(prev.pieces), prev.turn, prev.enPassantTarget);
 
       if (checkThreefoldRepetition(fen))
         newBoard.status = "threefold repetition";
