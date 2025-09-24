@@ -354,8 +354,7 @@ export function useBoard(
     (piece: Piece | null) => {
       if (piece && piece.color !== board.turn) return;
       if (!isAtLatestMove) return;
-      if (board.status === "checkmate") return;
-      if (board.status !== "playing") return;
+      if (board.status !== "playing" && board.status !== "check") return;
 
       setBoard((prev) => ({
         ...prev,

@@ -303,9 +303,13 @@ export default function Board({ controller }: BoardProps) {
     return boardState.history[length - 1];
   }, [boardState.history]);
 
+  const status = boardState.status;
+
   return (
     <div
-      className={`board ${boardState.status !== "playing" && "disable"}`}
+      className={`board ${
+        !(status === "playing" || status === "check") && "disable"
+      }`}
       ref={boardRef}
       onMouseDown={mouseDownHandler}
       onMouseMove={mouseMoveHandler}

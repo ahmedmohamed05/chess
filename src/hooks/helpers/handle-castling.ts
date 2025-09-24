@@ -12,9 +12,6 @@ export default function handleCastling(
     currentPiece.type === "king" &&
     Math.abs(fromPosition.file - toPosition.file) === 2; // distance between files is 2 so it means castling
 
-  console.log("-".repeat(20));
-  console.trace("Call Stack");
-  console.log("isCastling:", isCastling);
   if (!isCastling) return undefined;
 
   const castleType = toPosition.file > fromPosition.file ? "short" : "long";
