@@ -18,8 +18,7 @@ export default function App() {
                 gameController.boardState.history.length - 1
               ]
             }
-            hideClickHandler={() => console.log("hide")}
-            restartHandler={() => console.log("restart")}
+            restartHandler={gameController.restart}
             forceHide={false}
           />
         )}

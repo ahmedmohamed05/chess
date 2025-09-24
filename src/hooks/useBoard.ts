@@ -454,6 +454,12 @@ export function useBoard(
     [board.history.length]
   );
 
+  const restart = useCallback(() => {
+    setBoard(initBoard);
+    setFocusedMoveIndex(null);
+    setFenMap(new Map());
+  }, [initBoard]);
+
   // Detecting threefold repetition draw
   useEffect(() => {
     setBoard((prev) => {
@@ -500,5 +506,6 @@ export function useBoard(
       handleBranching();
       movePiece(to);
     },
+    restart,
   };
 }

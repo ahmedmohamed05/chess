@@ -5,7 +5,6 @@ export interface GameResultProps {
   gameStatus: GameStatus;
   forceHide: boolean;
   lastMove: Move;
-  hideClickHandler: () => void;
   restartHandler: () => void;
 }
 
@@ -13,7 +12,6 @@ export default function GameResult({
   gameStatus,
   forceHide,
   lastMove,
-  hideClickHandler,
   restartHandler,
 }: GameResultProps) {
   if (forceHide) return;
@@ -43,7 +41,7 @@ export default function GameResult({
   return (
     <div
       className="game-result-card text-white p-5 rounded text-center z-[101]"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 101 }}
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.7)", zIndex: 101 }}
     >
       <div className="text">
         <h1 className="text-4xl font-bold">{resultText}</h1>
@@ -53,8 +51,12 @@ export default function GameResult({
         className="btns flex items-center gap-2 justify-center text-2xl"
         style={{ marginBlockStart: "1rem" }}
       >
-        <button onClick={restartHandler}>Restart</button>
-        <button onClick={hideClickHandler}>close</button>
+        <button
+          className="px-2.5 py-1 rounded cursor-pointer bg-red-500"
+          onClick={restartHandler}
+        >
+          Restart
+        </button>
       </div>
     </div>
   );

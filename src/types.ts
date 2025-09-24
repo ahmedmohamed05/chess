@@ -71,7 +71,7 @@ export interface GameController {
   movePiece: (targetPosition: Coordinates) => void;
   promotePawn: (promoteTo: PromotionOption) => void;
   goToMove: (index: number) => void;
-  // getBoardAtFocusedMove: () => BoardState;
+  restart: () => void;
 }
 
 export interface MovingRef {
